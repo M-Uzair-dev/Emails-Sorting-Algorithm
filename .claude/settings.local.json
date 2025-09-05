@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\Noman\\Desktop\\coding files\\EmailingService\\my-app\\src\\app/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
