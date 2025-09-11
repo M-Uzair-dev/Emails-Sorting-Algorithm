@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 export default function Home() {
@@ -28,6 +28,54 @@ export default function Home() {
   const [emailTitle, setEmailTitle] = useState("");
   const [customerEmailsFile, setCustomerEmailsFile] = useState(null);
   const [pendingCustomerEmailEntries, setPendingCustomerEmailEntries] = useState([]);
+  const [invoiceLinksData, setInvoiceLinksData] = useState({});
+  const [invoiceLinksFile, setInvoiceLinksFile] = useState(null);
+  const [pendingInvoiceLinksEntries, setPendingInvoiceLinksEntries] = useState([]);
+
+  // Add beforeunload event listener to prevent accidental tab closure
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      // Show warning if user has work in progress
+      const hasWorkInProgress = 
+        invoiceFile || 
+        noContactFile || 
+        isCollectingEmails || 
+        processedEmails.length > 0 || 
+        isProcessing ||
+        pendingCustomerEmailEntries.length > 0 ||
+        pendingInvoiceLinksEntries.length > 0;
+
+      if (hasWorkInProgress) {
+        event.preventDefault();
+        event.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // Some browsers require a return value
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup the event listener when component unmounts
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [
+    invoiceFile, 
+    noContactFile, 
+    isCollectingEmails, 
+    processedEmails.length, 
+    isProcessing,
+    pendingCustomerEmailEntries.length,
+    pendingInvoiceLinksEntries.length
+  ]);
+
+  const isValidURL = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const copyEmailToClipboard = async () => {
     const currentEmail = processedEmails[currentEmailIndex];
@@ -88,6 +136,8 @@ export default function Home() {
       setSentInvoicesFile(file);
     } else if (fileType === "customerEmails") {
       setCustomerEmailsFile(file);
+    } else if (fileType === "invoiceLinks") {
+      setInvoiceLinksFile(file);
     }
   };
 
@@ -335,6 +385,28 @@ export default function Home() {
         console.log('🔍 No CustomerEmails file provided - will collect all emails manually');
       }
 
+      // Load invoice links data if file is provided
+      let invoiceLinksDataRaw = [];
+      if (invoiceLinksFile) {
+        invoiceLinksDataRaw = await readExcelFile(invoiceLinksFile);
+        console.log('🔍 InvoiceLinks file loaded:', invoiceLinksDataRaw.length, 'rows');
+        
+        // Pre-populate invoiceLinksData from uploaded file
+        const preloadedLinks = {};
+        invoiceLinksDataRaw.forEach(entry => {
+          const invoiceNum = entry['Invoice'] || entry.invoice || entry.Invoice || entry.Num || '';
+          const link = entry['Link'] || entry.link || entry.URL || entry.url || '';
+          
+          if (invoiceNum && link) {
+            preloadedLinks[invoiceNum] = link;
+          }
+        });
+        setInvoiceLinksData(preloadedLinks);
+        console.log('🔗 Pre-loaded links for:', Object.keys(preloadedLinks).length, 'invoices');
+      } else {
+        console.log('🔍 No InvoiceLinks file provided - will collect all links manually');
+      }
+
       // Store customers list for email collection (only those with emails to send)
       setCustomersList(customersWithEmails);
       setCurrentCustomerIndex(0);
@@ -386,7 +458,8 @@ export default function Home() {
           const currentEmail = generateCurrentInvoiceEmail(
             customer,
             categorizedInvoices.current,
-            sentInvoicesDataRaw
+            sentInvoicesDataRaw,
+            customerEmailData[customer]
           );
           if (currentEmail) {
             // Add customer email data and email title
@@ -412,7 +485,8 @@ export default function Home() {
         if (overdueInvoices.length > 0) {
           const overdueEmail = generateOverdueInvoiceEmail(
             customer,
-            overdueInvoices
+            overdueInvoices,
+            customerEmailData[customer]
           );
           // Add customer email data and email title
           overdueEmail.customerEmail = customerEmailData[customer]?.email || "";
@@ -453,6 +527,22 @@ export default function Home() {
         }
       }
       setPendingCustomerEmailEntries(pendingEntries);
+
+      // Track pending invoice links entries for export
+      const pendingInvoiceLinksEntries = [];
+      for (const [customerName, emailData] of Object.entries(customerEmailData)) {
+        if (emailData.invoiceLinks) {
+          for (const [invoiceNum, link] of Object.entries(emailData.invoiceLinks)) {
+            if (link && link.trim() !== "") {
+              pendingInvoiceLinksEntries.push({
+                Invoice: invoiceNum,
+                Link: link.trim()
+              });
+            }
+          }
+        }
+      }
+      setPendingInvoiceLinksEntries(pendingInvoiceLinksEntries);
     } catch (error) {
       alert(`Error generating emails: ${error.message}`);
     }
@@ -485,6 +575,35 @@ export default function Home() {
       setPendingCustomerEmailEntries([]);
     } catch (error) {
       alert('Error exporting customer emails file.');
+    }
+  };
+
+  const exportInvoiceLinks = () => {
+    if (pendingInvoiceLinksEntries.length === 0) {
+      alert('No invoice links data to save!');
+      return;
+    }
+
+    try {
+      // Convert invoice links to worksheet format
+      const worksheetData = pendingInvoiceLinksEntries.map(entry => ({
+        'Invoice': entry.Invoice,
+        'Link': entry.Link
+      }));
+      
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'InvoiceLinks');
+      
+      // Always export as "invoice-links.xlsx" for easy replacement
+      XLSX.writeFile(workbook, 'invoice-links.xlsx');
+      
+      alert(`✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${pendingInvoiceLinksEntries.length} invoice links\n\n📁 Use this file next time to pre-fill invoice links.`);
+      
+      // Clear pending entries
+      setPendingInvoiceLinksEntries([]);
+    } catch (error) {
+      alert('Error exporting invoice links file.');
     }
   };
 
@@ -563,7 +682,8 @@ export default function Home() {
   const generateCurrentInvoiceEmail = (
     customer,
     currentInvoices,
-    sentInvoicesData
+    sentInvoicesData,
+    customerEmailData
   ) => {
     // Create a set of sent invoice numbers
     console.log(`🔍 Checking sent invoices for customer: ${customer}`);
@@ -664,10 +784,10 @@ export default function Home() {
 
     // Generate email for unsent current invoices only
     console.log("📧 Generating current invoice email");
-    return generateCurrentOnlyEmail(customer, unsentCurrentInvoices);
+    return generateCurrentOnlyEmail(customer, unsentCurrentInvoices, customerEmailData);
   };
 
-  const generateOverdueInvoiceEmail = (customer, overdueInvoices) => {
+  const generateOverdueInvoiceEmail = (customer, overdueInvoices, customerEmailData) => {
     // Categorize overdue invoices by age
     const categorizedInvoices = categorizeInvoicesByAge(overdueInvoices);
 
@@ -729,7 +849,7 @@ Below are your outstanding overdue invoices:
       if (categoryInvoices.length > 0) {
         emailContent += `
 <p style="margin: 16px 0 8px 0;">
-  <span style="background-color: ${bgColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 10pt;">${label}</span>
+  <span style="background-color: ${bgColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 12pt;">${label}</span>
 </p>
 <ul style="margin: 8px 0; padding-left: 24px;">`;
 
@@ -744,10 +864,11 @@ Below are your outstanding overdue invoices:
             invoice.number ||
             "N/A";
           const dueDateStr = dueDate.toLocaleDateString();
+          const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
 
           emailContent += `
   <li style="margin-bottom: 4px;">
-    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong>
+    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
         });
 
@@ -932,12 +1053,12 @@ ${closingRequest}`;
       } else {
         // Generate email for unsent current invoices only
         console.log("📧 Generating email for unsent current invoices only");
-        return generateCurrentOnlyEmail(customer, unsentCurrentInvoices);
+        return generateCurrentOnlyEmail(customer, unsentCurrentInvoices, customerEmailData);
       }
     }
   };
 
-  const generateCurrentOnlyEmail = (customer, currentInvoices) => {
+  const generateCurrentOnlyEmail = (customer, currentInvoices, customerEmailData) => {
     const totalAmount = currentInvoices.reduce(
       (sum, inv) => sum + (parseFloat(inv.Amount || inv.amount) || 0),
       0
@@ -965,9 +1086,10 @@ Below are your newly sent invoices:
       ).toLocaleDateString();
       const invoiceNum =
         invoice.Num || invoice.num || invoice.Number || invoice.number || "N/A";
+      const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
       emailContent += `
   <li style="margin-bottom: 4px;">
-    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDate}</strong>
+    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDate}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
     });
 
@@ -1094,7 +1216,7 @@ Below are your outstanding invoices:
           // Overdue categories with red background
           emailContent += `
 <p style="margin: 16px 0 8px 0;">
-  <span style="background-color: ${bgColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 10pt;">${label}</span>
+  <span style="background-color: ${bgColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 12pt;">${label}</span>
 </p>`;
         } else {
           // Current invoices with blue styling
@@ -1117,16 +1239,17 @@ Below are your outstanding invoices:
           const today = new Date();
           const isOverdue = dueDate < today;
           const dueDateStr = dueDate.toLocaleDateString();
+          const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
 
           if (isOverdue) {
             emailContent += `
   <li style="margin-bottom: 4px;">
-    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong>
+    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
           } else {
             emailContent += `
   <li style="margin-bottom: 4px;">
-    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDateStr}</strong>
+    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
           }
         });
@@ -1509,6 +1632,61 @@ ${closingRequest}`;
           </div>
         </div>
 
+        {/* Invoice Links File Upload Section */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <div className="bg-orange-100 p-3 rounded-lg mr-4">
+              <svg
+                className="w-6 h-6 text-orange-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Invoice Links (Optional)
+              </h2>
+              <p className="text-sm text-gray-500">
+                Upload file with saved invoice links for pre-filling
+              </p>
+            </div>
+          </div>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => handleFileUpload(e, "invoiceLinks")}
+              className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-orange-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+            />
+          </div>
+          {invoiceLinksFile && (
+            <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-800 flex items-center">
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {invoiceLinksFile.name}
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Email Signature Section */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
           <div className="flex items-center mb-4">
@@ -1697,6 +1875,56 @@ ${closingRequest}`;
                   />
                 </svg>
                 Export Customer Emails
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Export Invoice Links Section */}
+        {pendingInvoiceLinksEntries.length > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                  <svg
+                    className="w-5 h-5 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-800">Invoice Links Ready</h3>
+                  <p className="text-xs text-orange-600">
+                    🔗 {pendingInvoiceLinksEntries.length} invoice links to save
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={exportInvoiceLinks}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Export Invoice Links
               </button>
             </div>
           </div>
@@ -1943,6 +2171,72 @@ ${closingRequest}`;
                     placeholder="Enter CC email address (optional)"
                   />
                 </div>
+
+                {/* Invoice Links Section */}
+                <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
+                  <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center">
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
+                    </svg>
+                    Invoice Links Required *
+                  </h3>
+                  <p className="text-sm text-orange-700 mb-4">
+                    Enter the payment link for each invoice. All links are required.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    {(() => {
+                      const currentCustomer = customersList[currentCustomerIndex];
+                      const customerInvoices = window.tempGroupedByCustomer?.[currentCustomer] || [];
+                      
+                      return customerInvoices.map((invoice, index) => {
+                        const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || `Invoice ${index + 1}`;
+                        const dueDate = new Date(invoice["Due date"] || invoice["due date"] || invoice.duedate).toLocaleDateString();
+                        
+                        return (
+                          <div key={index} className="bg-white rounded-lg p-4 border border-orange-300">
+                            <label className="block text-sm font-medium text-gray-800 mb-2">
+                              Invoice #{invoiceNum} (Due: {dueDate}) *
+                            </label>
+                            <input
+                              type="url"
+                              value={
+                                customerEmailData[currentCustomer]?.invoiceLinks?.[invoiceNum] || 
+                                invoiceLinksData[invoiceNum] || ""
+                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setCustomerEmailData((prev) => ({
+                                  ...prev,
+                                  [currentCustomer]: {
+                                    ...prev[currentCustomer],
+                                    invoiceLinks: {
+                                      ...prev[currentCustomer]?.invoiceLinks,
+                                      [invoiceNum]: value,
+                                    },
+                                  },
+                                }));
+                              }}
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 placeholder-gray-400"
+                              placeholder="https://example.com/invoice-payment-link"
+                              required
+                            />
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between mt-10 max-w-2xl mx-auto">
@@ -1978,6 +2272,32 @@ ${closingRequest}`;
 
                     if (!emailData?.email || emailData.email.trim() === "") {
                       alert("Please enter an email for this customer");
+                      return;
+                    }
+
+                    // Validate all invoice links are provided and valid
+                    const customerInvoices = window.tempGroupedByCustomer?.[currentCustomer] || [];
+                    const missingLinks = [];
+                    const invalidLinks = [];
+
+                    for (const invoice of customerInvoices) {
+                      const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || `Invoice ${customerInvoices.indexOf(invoice) + 1}`;
+                      const link = emailData?.invoiceLinks?.[invoiceNum] || invoiceLinksData[invoiceNum] || "";
+                      
+                      if (!link || link.trim() === "") {
+                        missingLinks.push(invoiceNum);
+                      } else if (!isValidURL(link.trim())) {
+                        invalidLinks.push(invoiceNum);
+                      }
+                    }
+
+                    if (missingLinks.length > 0) {
+                      alert(`Please provide links for the following invoices: ${missingLinks.join(", ")}`);
+                      return;
+                    }
+
+                    if (invalidLinks.length > 0) {
+                      alert(`Please provide valid URLs for the following invoices: ${invalidLinks.join(", ")}`);
                       return;
                     }
 
