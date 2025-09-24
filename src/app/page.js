@@ -27,45 +27,48 @@ export default function Home() {
   const [customersList, setCustomersList] = useState([]);
   const [emailTitle, setEmailTitle] = useState("");
   const [customerEmailsFile, setCustomerEmailsFile] = useState(null);
-  const [pendingCustomerEmailEntries, setPendingCustomerEmailEntries] = useState([]);
+  const [pendingCustomerEmailEntries, setPendingCustomerEmailEntries] =
+    useState([]);
   const [invoiceLinksData, setInvoiceLinksData] = useState({});
   const [invoiceLinksFile, setInvoiceLinksFile] = useState(null);
-  const [pendingInvoiceLinksEntries, setPendingInvoiceLinksEntries] = useState([]);
+  const [pendingInvoiceLinksEntries, setPendingInvoiceLinksEntries] = useState(
+    []
+  );
 
   // Add beforeunload event listener to prevent accidental tab closure
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       // Show warning if user has work in progress
-      const hasWorkInProgress = 
-        invoiceFile || 
-        noContactFile || 
-        isCollectingEmails || 
-        processedEmails.length > 0 || 
+      const hasWorkInProgress =
+        invoiceFile ||
+        noContactFile ||
+        isCollectingEmails ||
+        processedEmails.length > 0 ||
         isProcessing ||
         pendingCustomerEmailEntries.length > 0 ||
         pendingInvoiceLinksEntries.length > 0;
 
       if (hasWorkInProgress) {
         event.preventDefault();
-        event.returnValue = ''; // Chrome requires returnValue to be set
-        return ''; // Some browsers require a return value
+        event.returnValue = ""; // Chrome requires returnValue to be set
+        return ""; // Some browsers require a return value
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     // Cleanup the event listener when component unmounts
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
-    invoiceFile, 
-    noContactFile, 
-    isCollectingEmails, 
-    processedEmails.length, 
+    invoiceFile,
+    noContactFile,
+    isCollectingEmails,
+    processedEmails.length,
     isProcessing,
     pendingCustomerEmailEntries.length,
-    pendingInvoiceLinksEntries.length
+    pendingInvoiceLinksEntries.length,
   ]);
 
   const isValidURL = (url) => {
@@ -363,48 +366,78 @@ export default function Home() {
       let customerEmailsDataRaw = [];
       if (customerEmailsFile) {
         customerEmailsDataRaw = await readExcelFile(customerEmailsFile);
-        console.log('🔍 CustomerEmails file loaded:', customerEmailsDataRaw.length, 'rows');
-        
+        console.log(
+          "🔍 CustomerEmails file loaded:",
+          customerEmailsDataRaw.length,
+          "rows"
+        );
+
         // Pre-populate customerEmailData from uploaded file
         const preloadedEmails = {};
-        customerEmailsDataRaw.forEach(entry => {
-          const customerName = entry['Customer Name'] || entry.customerName || entry.Customer || '';
-          const email = entry['Email'] || entry.email || '';
-          const cc = entry['CC'] || entry.cc || entry.CC || '';
-          
+        customerEmailsDataRaw.forEach((entry) => {
+          const customerName =
+            entry["Customer Name"] ||
+            entry.customerName ||
+            entry.Customer ||
+            "";
+          const email = entry["Email"] || entry.email || "";
+          const cc = entry["CC"] || entry.cc || entry.CC || "";
+
           if (customerName && email) {
             preloadedEmails[customerName] = {
               email: email,
-              cc: cc
+              cc: cc,
             };
           }
         });
         setCustomerEmailData(preloadedEmails);
-        console.log('📧 Pre-loaded emails for:', Object.keys(preloadedEmails).length, 'customers');
+        console.log(
+          "📧 Pre-loaded emails for:",
+          Object.keys(preloadedEmails).length,
+          "customers"
+        );
       } else {
-        console.log('🔍 No CustomerEmails file provided - will collect all emails manually');
+        console.log(
+          "🔍 No CustomerEmails file provided - will collect all emails manually"
+        );
       }
 
       // Load invoice links data if file is provided
       let invoiceLinksDataRaw = [];
       if (invoiceLinksFile) {
         invoiceLinksDataRaw = await readExcelFile(invoiceLinksFile);
-        console.log('🔍 InvoiceLinks file loaded:', invoiceLinksDataRaw.length, 'rows');
-        
+        console.log(
+          "🔍 InvoiceLinks file loaded:",
+          invoiceLinksDataRaw.length,
+          "rows"
+        );
+
         // Pre-populate invoiceLinksData from uploaded file
         const preloadedLinks = {};
-        invoiceLinksDataRaw.forEach(entry => {
-          const invoiceNum = entry['Invoice'] || entry.invoice || entry.Invoice || entry.Num || '';
-          const link = entry['Link'] || entry.link || entry.URL || entry.url || '';
-          
+        invoiceLinksDataRaw.forEach((entry) => {
+          const invoiceNum =
+            entry["Invoice"] ||
+            entry.invoice ||
+            entry.Invoice ||
+            entry.Num ||
+            "";
+          const link =
+            entry["Link"] || entry.link || entry.URL || entry.url || "";
+
           if (invoiceNum && link) {
             preloadedLinks[invoiceNum] = link;
           }
         });
         setInvoiceLinksData(preloadedLinks);
-        console.log('🔗 Pre-loaded links for:', Object.keys(preloadedLinks).length, 'invoices');
+        console.log(
+          "🔗 Pre-loaded links for:",
+          Object.keys(preloadedLinks).length,
+          "invoices"
+        );
       } else {
-        console.log('🔍 No InvoiceLinks file provided - will collect all links manually');
+        console.log(
+          "🔍 No InvoiceLinks file provided - will collect all links manually"
+        );
       }
 
       // Store customers list for email collection (only those with emails to send)
@@ -444,6 +477,24 @@ export default function Home() {
     try {
       const groupedByCustomer = window.tempGroupedByCustomer;
       const sentInvoicesDataRaw = window.tempSentInvoicesDataRaw;
+
+      // Merge pre-loaded invoice links into customer email data
+      for (const [customerName, emailData] of Object.entries(customerEmailData)) {
+        const customerInvoices = groupedByCustomer[customerName] || [];
+
+        // Ensure invoiceLinks property exists
+        if (!emailData.invoiceLinks) {
+          emailData.invoiceLinks = {};
+        }
+
+        // For each invoice, if no link is set, use the pre-loaded link
+        customerInvoices.forEach((invoice) => {
+          const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || "N/A";
+          if (!emailData.invoiceLinks[invoiceNum] && invoiceLinksData[invoiceNum]) {
+            emailData.invoiceLinks[invoiceNum] = invoiceLinksData[invoiceNum];
+          }
+        });
+      }
 
       // Phase 1: Generate Current Invoice Emails
       const currentEmailsArray = [];
@@ -517,12 +568,14 @@ export default function Home() {
 
       // Track pending customer email entries for export
       const pendingEntries = [];
-      for (const [customerName, emailData] of Object.entries(customerEmailData)) {
+      for (const [customerName, emailData] of Object.entries(
+        customerEmailData
+      )) {
         if (emailData.email) {
           pendingEntries.push({
             customerName,
             email: emailData.email,
-            cc: emailData.cc || ''
+            cc: emailData.cc || "",
           });
         }
       }
@@ -530,13 +583,17 @@ export default function Home() {
 
       // Track pending invoice links entries for export
       const pendingInvoiceLinksEntries = [];
-      for (const [customerName, emailData] of Object.entries(customerEmailData)) {
+      for (const [customerName, emailData] of Object.entries(
+        customerEmailData
+      )) {
         if (emailData.invoiceLinks) {
-          for (const [invoiceNum, link] of Object.entries(emailData.invoiceLinks)) {
+          for (const [invoiceNum, link] of Object.entries(
+            emailData.invoiceLinks
+          )) {
             if (link && link.trim() !== "") {
               pendingInvoiceLinksEntries.push({
                 Invoice: invoiceNum,
-                Link: link.trim()
+                Link: link.trim(),
               });
             }
           }
@@ -550,60 +607,73 @@ export default function Home() {
 
   const exportCustomerEmails = () => {
     if (pendingCustomerEmailEntries.length === 0) {
-      alert('No customer email data to save!');
+      alert("No customer email data to save!");
       return;
     }
 
     try {
       // Convert customer emails to worksheet format
-      const worksheetData = pendingCustomerEmailEntries.map(entry => ({
-        'Customer Name': entry.customerName,
-        'Email': entry.email,
-        'CC': entry.cc
+      const worksheetData = pendingCustomerEmailEntries.map((entry) => ({
+        "Customer Name": entry.customerName,
+        Email: entry.email,
+        CC: entry.cc,
       }));
-      
+
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'CustomerEmails');
-      
+      XLSX.utils.book_append_sheet(workbook, worksheet, "CustomerEmails");
+
       // Always export as "CustomerEmails.xlsx" for easy replacement
-      XLSX.writeFile(workbook, 'CustomerEmails.xlsx');
-      
-      alert(`✅ Exported CustomerEmails.xlsx file!\n\n📊 Total entries: ${pendingCustomerEmailEntries.length} customers\n\n📁 Use this file next time to pre-fill customer email addresses.`);
-      
+      XLSX.writeFile(workbook, "CustomerEmails.xlsx");
+
+      alert(
+        `✅ Exported CustomerEmails.xlsx file!\n\n📊 Total entries: ${pendingCustomerEmailEntries.length} customers\n\n📁 Use this file next time to pre-fill customer email addresses.`
+      );
+
       // Clear pending entries
       setPendingCustomerEmailEntries([]);
     } catch (error) {
-      alert('Error exporting customer emails file.');
+      alert("Error exporting customer emails file.");
     }
   };
 
   const exportInvoiceLinks = () => {
     if (pendingInvoiceLinksEntries.length === 0) {
-      alert('No invoice links data to save!');
+      alert("No invoice links data to save!");
       return;
     }
 
     try {
-      // Convert invoice links to worksheet format
-      const worksheetData = pendingInvoiceLinksEntries.map(entry => ({
-        'Invoice': entry.Invoice,
-        'Link': entry.Link
+      // Combine existing invoice links data with new pending entries
+      const allInvoiceLinks = { ...invoiceLinksData };
+
+      // Add/update with new pending entries
+      pendingInvoiceLinksEntries.forEach((entry) => {
+        allInvoiceLinks[entry.Invoice] = entry.Link;
+      });
+
+      // Convert combined invoice links to worksheet format
+      const worksheetData = Object.entries(allInvoiceLinks).map(([invoice, link]) => ({
+        Invoice: invoice,
+        Link: link,
       }));
-      
+
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'InvoiceLinks');
-      
+      XLSX.utils.book_append_sheet(workbook, worksheet, "InvoiceLinks");
+
       // Always export as "invoice-links.xlsx" for easy replacement
-      XLSX.writeFile(workbook, 'invoice-links.xlsx');
-      
-      alert(`✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${pendingInvoiceLinksEntries.length} invoice links\n\n📁 Use this file next time to pre-fill invoice links.`);
-      
-      // Clear pending entries
+      XLSX.writeFile(workbook, "invoice-links.xlsx");
+
+      alert(
+        `✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${worksheetData.length} invoice links\n📝 New entries added: ${pendingInvoiceLinksEntries.length}\n\n📁 Replace your original InvoiceLinks.xlsx with the downloaded file.`
+      );
+
+      // Clear pending entries and update the invoice links data state
       setPendingInvoiceLinksEntries([]);
+      setInvoiceLinksData(allInvoiceLinks);
     } catch (error) {
-      alert('Error exporting invoice links file.');
+      alert("Error exporting invoice links file.");
     }
   };
 
@@ -784,10 +854,18 @@ export default function Home() {
 
     // Generate email for unsent current invoices only
     console.log("📧 Generating current invoice email");
-    return generateCurrentOnlyEmail(customer, unsentCurrentInvoices, customerEmailData);
+    return generateCurrentOnlyEmail(
+      customer,
+      unsentCurrentInvoices,
+      customerEmailData
+    );
   };
 
-  const generateOverdueInvoiceEmail = (customer, overdueInvoices, customerEmailData) => {
+  const generateOverdueInvoiceEmail = (
+    customer,
+    overdueInvoices,
+    customerEmailData
+  ) => {
     // Categorize overdue invoices by age
     const categorizedInvoices = categorizeInvoicesByAge(overdueInvoices);
 
@@ -864,12 +942,20 @@ Below are your outstanding overdue invoices:
             invoice.number ||
             "N/A";
           const dueDateStr = dueDate.toLocaleDateString();
-          const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
+          const invoiceLink =
+            customerEmailData?.invoiceLinks?.[invoiceNum];
 
-          emailContent += `
+          if (invoiceLink && invoiceLink.trim() !== "") {
+            emailContent += `
   <li style="margin-bottom: 4px;">
     <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
+          } else {
+            emailContent += `
+  <li style="margin-bottom: 4px;">
+    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong>
+  </li>`;
+          }
         });
 
         emailContent += `
@@ -1053,12 +1139,20 @@ ${closingRequest}`;
       } else {
         // Generate email for unsent current invoices only
         console.log("📧 Generating email for unsent current invoices only");
-        return generateCurrentOnlyEmail(customer, unsentCurrentInvoices, customerEmailData);
+        return generateCurrentOnlyEmail(
+          customer,
+          unsentCurrentInvoices,
+          customerEmailData
+        );
       }
     }
   };
 
-  const generateCurrentOnlyEmail = (customer, currentInvoices, customerEmailData) => {
+  const generateCurrentOnlyEmail = (
+    customer,
+    currentInvoices,
+    customerEmailData
+  ) => {
     const totalAmount = currentInvoices.reduce(
       (sum, inv) => sum + (parseFloat(inv.Amount || inv.amount) || 0),
       0
@@ -1067,7 +1161,7 @@ ${closingRequest}`;
 
     const greeting = `Hello ${customer},`;
     const introduction = `We hope this message finds you well. New invoices have been issued to your account for your review.`;
-   const closingRequest = `These invoices are not yet due, and payment is kindly requested by the dates shown above. If you have any questions or need clarification, simply reply to this email and we will be happy to assist.`;
+    const closingRequest = `These invoices are not yet due, and payment is kindly requested by the dates shown above. If you have any questions or need clarification, simply reply to this email and we will be happy to assist.`;
     const signature = `Warm regards,\nAccounts Receivable Department`;
 
     let emailContent = `<div style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; line-height: 1.4;">
@@ -1086,11 +1180,20 @@ Below are your newly sent invoices:
       ).toLocaleDateString();
       const invoiceNum =
         invoice.Num || invoice.num || invoice.Number || invoice.number || "N/A";
-      const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
-      emailContent += `
+      const invoiceLink =
+        customerEmailData?.invoiceLinks?.[invoiceNum];
+
+      if (invoiceLink && invoiceLink.trim() !== "") {
+        emailContent += `
   <li style="margin-bottom: 4px;">
     <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDate}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
+      } else {
+        emailContent += `
+  <li style="margin-bottom: 4px;">
+    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDate}</strong>
+  </li>`;
+      }
     });
 
     emailContent += `
@@ -1239,18 +1342,33 @@ Below are your outstanding invoices:
           const today = new Date();
           const isOverdue = dueDate < today;
           const dueDateStr = dueDate.toLocaleDateString();
-          const invoiceLink = customerEmailData?.invoiceLinks?.[invoiceNum] || "https://uzairmanan.com";
+          const invoiceLink =
+            customerEmailData?.invoiceLinks?.[invoiceNum];
 
           if (isOverdue) {
-            emailContent += `
+            if (invoiceLink && invoiceLink.trim() !== "") {
+              emailContent += `
   <li style="margin-bottom: 4px;">
     <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
+            } else {
+              emailContent += `
+  <li style="margin-bottom: 4px;">
+    <strong>Invoice #${invoiceNum}</strong> | Overdue since: <strong>${dueDateStr}</strong>
+  </li>`;
+            }
           } else {
-            emailContent += `
+            if (invoiceLink && invoiceLink.trim() !== "") {
+              emailContent += `
   <li style="margin-bottom: 4px;">
     <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
   </li>`;
+            } else {
+              emailContent += `
+  <li style="margin-bottom: 4px;">
+    <strong>Invoice #${invoiceNum}</strong> | Due on: <strong>${dueDateStr}</strong>
+  </li>`;
+            }
           }
         });
 
@@ -1400,698 +1518,513 @@ ${closingRequest}`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="container mx-auto px-6 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-800 mb-3">
-            📧 Invoice Email Generator
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Automatically generate professional customer emails with aging
-            invoice details
-          </p>
-        </div>
+    <>
+      <style jsx>{`
+        input[type="file"]::-webkit-file-upload-button {
+          background: linear-gradient(to right, #b06ab3, #4568dc) !important;
+          border: none !important;
+        }
+        input[type="file"]::file-selector-button {
+          background: linear-gradient(to right, #b06ab3, #4568dc) !important;
+          border: none !important;
+        }
+      `}</style>
+      <div
+        className="min-h-screen"
+        // style={{ background: "linear-gradient(to right, #B06AB3, #4568DC)" }}
+        style={{ background: "#ddddddff" }}
+      >
+        <div className="container mx-auto px-4 py-6 max-w-5xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div
+              className="bg-white rounded-lg p-6 mb-6"
+              style={{ boxShadow: "4px 4px 0px #000000" }}
+            >
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Invoice Email Generator
+              </h1>
+              <p className="text-sm text-gray-600">
+                Generate professional customer emails with invoice details
+              </p>
+            </div>
+          </div>
 
-        {/* File Upload Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-100 p-3 rounded-lg mr-4">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
+          {/* File Upload Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div
+              className="bg-white rounded-lg p-4 border-2 border-purple-600"
+              style={{ boxShadow: "3px 3px 0px #000000" }}
+            >
+              <div className="mb-3">
+                <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Invoice Data File
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-600">
                   Upload your cleaned invoice Excel file
                 </p>
               </div>
-            </div>
-            <div className="relative">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => handleFileUpload(e, "invoice")}
-                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-blue-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-            </div>
-            {invoiceFile && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {invoiceFile.name}
-                </p>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => handleFileUpload(e, "invoice")}
+                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                />
               </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="bg-red-100 p-3 rounded-lg mr-4">
-                <svg
-                  className="w-6 h-6 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {invoiceFile && (
+                <div
+                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
+                  style={{ boxShadow: "2px 2px 0px #000000" }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                  <p className="text-xs text-green-800 flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {invoiceFile.name}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div
+              className="bg-white rounded-lg p-4 border-2 border-purple-600"
+              style={{ boxShadow: "3px 3px 0px #000000" }}
+            >
+              <div className="mb-3">
+                <h2 className="text-sm font-bold text-gray-900 mb-1">
                   No Contact Customers
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-600">
                   Upload file with customers to exclude
                 </p>
               </div>
-            </div>
-            <div className="relative">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => handleFileUpload(e, "noContact")}
-                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-red-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-              />
-            </div>
-            {noContactFile && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {noContactFile.name}
-                </p>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => handleFileUpload(e, "noContact")}
+                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                />
               </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="bg-green-100 p-3 rounded-lg mr-4">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {noContactFile && (
+                <div
+                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
+                  style={{ boxShadow: "2px 2px 0px #000000" }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                  <p className="text-xs text-green-800 flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {noContactFile.name}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div
+              className="bg-white rounded-lg p-4 border-2 border-purple-600"
+              style={{ boxShadow: "3px 3px 0px #000000" }}
+            >
+              <div className="mb-3">
+                <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Sent Invoices Tracker
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Upload file to track sent invoices (optional)
+                <p className="text-xs text-gray-600">
+                  Track sent invoices (optional)
                 </p>
               </div>
-            </div>
-            <div className="relative">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => handleFileUpload(e, "sentInvoices")}
-                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-green-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-              />
-            </div>
-            {sentInvoicesFile && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {sentInvoicesFile.name}
-                </p>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => handleFileUpload(e, "sentInvoices")}
+                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                />
               </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="bg-purple-100 p-3 rounded-lg mr-4">
-                <svg
-                  className="w-6 h-6 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {sentInvoicesFile && (
+                <div
+                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
+                  style={{ boxShadow: "2px 2px 0px #000000" }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 2.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                  <p className="text-xs text-green-800 flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {sentInvoicesFile.name}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div
+              className="bg-white rounded-lg p-4 border-2 border-purple-600"
+              style={{ boxShadow: "3px 3px 0px #000000" }}
+            >
+              <div className="mb-3">
+                <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Customer Emails
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Upload file with saved customer emails (optional)
+                <p className="text-xs text-gray-600">
+                  Saved customer emails (optional)
                 </p>
               </div>
-            </div>
-            <div className="relative">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => handleFileUpload(e, "customerEmails")}
-                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-purple-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-              />
-            </div>
-            {customerEmailsFile && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800 flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  {customerEmailsFile.name}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Invoice Links File Upload Section */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <div className="bg-orange-100 p-3 rounded-lg mr-4">
-              <svg
-                className="w-6 h-6 text-orange-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => handleFileUpload(e, "customerEmails")}
+                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
                 />
-              </svg>
+              </div>
+              {customerEmailsFile && (
+                <div
+                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
+                  style={{ boxShadow: "2px 2px 0px #000000" }}
+                >
+                  <p className="text-xs text-green-800 flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {customerEmailsFile.name}
+                  </p>
+                </div>
+              )}
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800">
+          </div>
+
+          {/* Invoice Links File Upload Section */}
+          <div
+            className="bg-white rounded-lg p-4 border-2 border-purple-600 mb-4"
+            style={{ boxShadow: "3px 3px 0px #000000" }}
+          >
+            <div className="mb-3">
+              <h2 className="text-sm font-bold text-gray-900 mb-1">
                 Invoice Links (Optional)
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs text-gray-600">
                 Upload file with saved invoice links for pre-filling
               </p>
             </div>
-          </div>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => handleFileUpload(e, "invoiceLinks")}
-              className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-700 hover:border-orange-400 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-            />
-          </div>
-          {invoiceLinksFile && (
-            <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-sm text-green-800 flex items-center">
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {invoiceLinksFile.name}
-              </p>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => handleFileUpload(e, "invoiceLinks")}
+                className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+              />
             </div>
-          )}
-        </div>
-
-        {/* Email Signature Section */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <div className="bg-purple-100 p-3 rounded-lg mr-4">
-              <svg
-                className="w-6 h-6 text-purple-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {invoiceLinksFile && (
+              <div
+                className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
+                style={{ boxShadow: "2px 2px 0px #000000" }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">
+                <p className="text-xs text-green-800 flex items-center">
+                  <svg
+                    className="w-3 h-3 mr-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {invoiceLinksFile.name}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Email Signature Section */}
+          <div
+            className="bg-white rounded-lg p-4 border-2 border-purple-600 mb-4"
+            style={{ boxShadow: "3px 3px 0px #000000" }}
+          >
+            <div className="mb-3">
+              <h2 className="text-sm font-bold text-gray-900 mb-1">
                 Email Signature
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs text-gray-600">
                 Paste your Outlook signature here (with formatting and images)
               </p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Input Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Paste Your Signature Here
-              </label>
-              <div
-                className="w-full min-h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                contentEditable
-                suppressContentEditableWarning={true}
-                onInput={(e) => setEmailSignature(e.target.innerHTML)}
-                style={{
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  backgroundColor: "white",
-                }}
-                placeholder="Right-click and paste your formatted signature from Outlook here..."
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                💡 Tip: Copy your signature from Outlook and paste it here.
-                Images and formatting will be preserved!
-              </p>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Input Section */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Paste Your Signature Here
+                </label>
+                <div
+                  className="w-full min-h-24 p-3 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
+                  contentEditable
+                  suppressContentEditableWarning={true}
+                  onInput={(e) => setEmailSignature(e.target.innerHTML)}
+                  style={{
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    backgroundColor: "white",
+                  }}
+                  placeholder="Right-click and paste your formatted signature from Outlook here..."
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Tip: Copy your signature from Outlook and paste it here.
+                  Images and formatting will be preserved!
+                </p>
+              </div>
 
-            {/* Preview Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Signature Preview
-              </label>
-              <div className="w-full min-h-32 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                {emailSignature ? (
-                  <div
-                    dangerouslySetInnerHTML={{ __html: emailSignature }}
-                    style={{ fontSize: "14px", lineHeight: "1.4" }}
-                  />
-                ) : (
-                  <p className="text-gray-400 text-sm italic">
-                    Your signature preview will appear here...
-                  </p>
-                )}
+              {/* Preview Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Signature Preview
+                </label>
+                <div className="w-full min-h-32 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  {emailSignature ? (
+                    <div
+                      dangerouslySetInnerHTML={{ __html: emailSignature }}
+                      style={{ fontSize: "14px", lineHeight: "1.4" }}
+                    />
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">
+                      Your signature preview will appear here...
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
+
+            {emailSignature && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-800 flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Signature ready! It will be automatically added to all
+                  generated emails.
+                </p>
+              </div>
+            )}
           </div>
 
-          {emailSignature && (
-            <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-sm text-green-800 flex items-center">
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+          {/* Export Updates Section */}
+          {pendingSentEntries.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                    <svg
+                      className="w-5 h-5 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-orange-800 font-medium">
+                      Updates Pending
+                    </p>
+                    <p className="text-sm text-orange-600">
+                      📝 {pendingSentEntries.length} pending entries to save
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={exportUpdatedSentInvoices}
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  style={{
+                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
+                    boxShadow: "2px 2px 0px #000000",
+                  }}
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Signature ready! It will be automatically added to all generated
-                emails.
-              </p>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Export Updates
+                </button>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Export Updates Section */}
-        {pendingSentEntries.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="bg-orange-100 p-2 rounded-lg mr-3">
-                  <svg
-                    className="w-5 h-5 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-orange-800 font-medium">Updates Pending</p>
-                  <p className="text-sm text-orange-600">
-                    📝 {pendingSentEntries.length} pending entries to save
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={exportUpdatedSentInvoices}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Export Updates
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Export Customer Emails Section */}
-        {pendingCustomerEmailEntries.length > 0 && (
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                  <svg
-                    className="w-5 h-5 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 2.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-purple-800 font-medium">Customer Emails Ready</p>
-                  <p className="text-sm text-purple-600">
-                    📧 {pendingCustomerEmailEntries.length} customer email addresses to save
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={exportCustomerEmails}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Export Customer Emails
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Export Invoice Links Section */}
-        {pendingInvoiceLinksEntries.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="bg-orange-100 p-2 rounded-lg mr-3">
-                  <svg
-                    className="w-5 h-5 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-orange-800">Invoice Links Ready</h3>
-                  <p className="text-xs text-orange-600">
-                    🔗 {pendingInvoiceLinksEntries.length} invoice links to save
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={exportInvoiceLinks}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Export Invoice Links
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* No Contact Customers Display */}
-        {removedNoContactCustomers.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
-            <div className="flex items-center mb-4">
-              <div className="bg-gray-100 p-2 rounded-lg mr-3">
-                <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">
-                  No Contact Customers Removed
-                </h3>
-                <p className="text-sm text-gray-600">
-                  These customers were found in your invoices but excluded from
-                  emails
-                </p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {removedNoContactCustomers.map((customer, index) => (
-                  <div
-                    key={index}
-                    className="text-sm text-gray-700 bg-gray-50 px-3 py-1 rounded-lg"
-                  >
-                    {customer}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 text-sm text-gray-500">
-                Total removed: {removedNoContactCustomers.length} customers
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Skipped Current/Sent Customers Display */}
-        {skippedCurrentSentCustomers.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                <svg
-                  className="w-5 h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-blue-800">
-                  Current Invoices Already Sent
-                </h3>
-                <p className="text-sm text-blue-600">
-                  These customers had current invoices but all were already sent
-                  previously
-                </p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-blue-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {skippedCurrentSentCustomers.map((customer, index) => (
-                  <div
-                    key={index}
-                    className="text-sm text-blue-700 bg-blue-50 px-3 py-1 rounded-lg"
-                  >
-                    {customer}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 text-sm text-blue-500">
-                Total skipped: {skippedCurrentSentCustomers.length} customers
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Generate Button - Hide after clicking */}
-        {!isCollectingEmails && processedEmails.length === 0 && (
-          <div className="flex justify-center mb-10">
-            <button
-              onClick={processFiles}
-              disabled={!invoiceFile || !noContactFile || isProcessing}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200 min-w-[200px]"
-            >
-              {isProcessing ? (
-                <div className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing Files...
-                </div>
-              ) : (
-                "✨ Generate Emails"
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Email Collection Phase */}
-        {isCollectingEmails && (
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mb-8">
-            <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
+          {/* Export Customer Emails Section */}
+          {pendingCustomerEmailEntries.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-8">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                    Customer Email Setup
-                  </h2>
-                  <p className="text-gray-600">
-                    Configure email addresses for invoice delivery
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">Progress</div>
-                  <div className="text-lg font-bold text-gray-800">
-                    {currentCustomerIndex + 1} of {customersList.length}
+                <div className="flex items-center">
+                  <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                    <svg
+                      className="w-5 h-5 text-purple-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 8l7.89 2.26a2 2 0 001.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {Object.keys(customerEmailData).filter(key => customerEmailData[key]?.email).length} pre-filled
+                  <div>
+                    <p className="text-purple-800 font-medium">
+                      Customer Emails Ready
+                    </p>
+                    <p className="text-sm text-purple-600">
+                      📧 {pendingCustomerEmailEntries.length} customer email
+                      addresses to save
+                    </p>
                   </div>
                 </div>
+                <button
+                  onClick={exportCustomerEmails}
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  style={{
+                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
+                    boxShadow: "2px 2px 0px #000000",
+                  }}
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Export Customer Emails
+                </button>
               </div>
             </div>
+          )}
 
-            <div className="p-8">
-              <div className="mb-8">
-                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4">
+          {/* Export Invoice Links Section */}
+          {pendingInvoiceLinksEntries.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                    <svg
+                      className="w-5 h-5 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-orange-800">
+                      Invoice Links Ready
+                    </h3>
+                    <p className="text-xs text-orange-600">
+                      🔗 {pendingInvoiceLinksEntries.length} invoice links to
+                      save
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={exportInvoiceLinks}
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  style={{
+                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
+                    boxShadow: "2px 2px 0px #000000",
+                  }}
+                >
                   <svg
-                    className="w-8 h-8 text-blue-600"
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Export Invoice Links
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* No Contact Customers Display */}
+          {removedNoContactCustomers.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-gray-100 p-2 rounded-lg mr-3">
+                  <svg
+                    className="w-5 h-5 text-gray-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2104,153 +2037,41 @@ ${closingRequest}`;
                     />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">
-                  {customersList[currentCustomerIndex]}
-                </h3>
-                <p className="text-gray-600 text-center">
-                  {customerEmailData[customersList[currentCustomerIndex]]?.email 
-                    ? 'Email pre-filled from uploaded file - review and update if needed'
-                    : 'Configure email delivery settings for this customer'
-                  }
-                </p>
-                {customerEmailData[customersList[currentCustomerIndex]]?.email && (
-                  <div className="flex justify-center mt-2">
-                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                      ✓ Pre-filled from file
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="max-w-2xl mx-auto space-y-6">
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Primary Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    value={
-                      customerEmailData[customersList[currentCustomerIndex]]
-                        ?.email || ""
-                    }
-                    onChange={(e) =>
-                      setCustomerEmailData((prev) => ({
-                        ...prev,
-                        [customersList[currentCustomerIndex]]: {
-                          ...prev[customersList[currentCustomerIndex]],
-                          email: e.target.value,
-                        },
-                      }))
-                    }
-                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-400 text-lg"
-                    placeholder="Enter customer email address"
-                    required
-                  />
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    CC Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={
-                      customerEmailData[customersList[currentCustomerIndex]]
-                        ?.cc || ""
-                    }
-                    onChange={(e) =>
-                      setCustomerEmailData((prev) => ({
-                        ...prev,
-                        [customersList[currentCustomerIndex]]: {
-                          ...prev[customersList[currentCustomerIndex]],
-                          cc: e.target.value,
-                        },
-                      }))
-                    }
-                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-400 text-lg"
-                    placeholder="Enter CC email address (optional)"
-                  />
-                </div>
-
-                {/* Invoice Links Section */}
-                <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
-                  <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center">
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                      />
-                    </svg>
-                    Invoice Links Required *
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    No Contact Customers Removed
                   </h3>
-                  <p className="text-sm text-orange-700 mb-4">
-                    Enter the payment link for each invoice. All links are required.
+                  <p className="text-sm text-gray-600">
+                    These customers were found in your invoices but excluded
+                    from emails
                   </p>
-                  
-                  <div className="space-y-4">
-                    {(() => {
-                      const currentCustomer = customersList[currentCustomerIndex];
-                      const customerInvoices = window.tempGroupedByCustomer?.[currentCustomer] || [];
-                      
-                      return customerInvoices.map((invoice, index) => {
-                        const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || `Invoice ${index + 1}`;
-                        const dueDate = new Date(invoice["Due date"] || invoice["due date"] || invoice.duedate).toLocaleDateString();
-                        
-                        return (
-                          <div key={index} className="bg-white rounded-lg p-4 border border-orange-300">
-                            <label className="block text-sm font-medium text-gray-800 mb-2">
-                              Invoice #{invoiceNum} (Due: {dueDate}) *
-                            </label>
-                            <input
-                              type="url"
-                              value={
-                                customerEmailData[currentCustomer]?.invoiceLinks?.[invoiceNum] || 
-                                invoiceLinksData[invoiceNum] || ""
-                              }
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setCustomerEmailData((prev) => ({
-                                  ...prev,
-                                  [currentCustomer]: {
-                                    ...prev[currentCustomer],
-                                    invoiceLinks: {
-                                      ...prev[currentCustomer]?.invoiceLinks,
-                                      [invoiceNum]: value,
-                                    },
-                                  },
-                                }));
-                              }}
-                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 placeholder-gray-400"
-                              placeholder="https://example.com/invoice-payment-link"
-                              required
-                            />
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
                 </div>
               </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {removedNoContactCustomers.map((customer, index) => (
+                    <div
+                      key={index}
+                      className="text-sm text-gray-700 bg-gray-50 px-3 py-1 rounded-lg"
+                    >
+                      {customer}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-sm text-gray-500">
+                  Total removed: {removedNoContactCustomers.length} customers
+                </div>
+              </div>
+            </div>
+          )}
 
-              <div className="flex items-center justify-between mt-10 max-w-2xl mx-auto">
-                <button
-                  onClick={() => {
-                    if (currentCustomerIndex > 0) {
-                      setCurrentCustomerIndex(currentCustomerIndex - 1);
-                    }
-                  }}
-                  disabled={currentCustomerIndex === 0}
-                  className="flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-                >
+          {/* Skipped Current/Sent Customers Display */}
+          {skippedCurrentSentCustomers.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center mb-4">
+                <div className="bg-blue-100 p-2 rounded-lg mr-3">
                   <svg
-                    className="w-5 h-5 mr-2"
+                    className="w-5 h-5 text-blue-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2259,170 +2080,125 @@ ${closingRequest}`;
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  Previous
-                </button>
-
-                <button
-                  onClick={() => {
-                    const currentCustomer = customersList[currentCustomerIndex];
-                    const emailData = customerEmailData[currentCustomer];
-
-                    if (!emailData?.email || emailData.email.trim() === "") {
-                      alert("Please enter an email for this customer");
-                      return;
-                    }
-
-                    // Validate all invoice links are provided and valid
-                    const customerInvoices = window.tempGroupedByCustomer?.[currentCustomer] || [];
-                    const missingLinks = [];
-                    const invalidLinks = [];
-
-                    for (const invoice of customerInvoices) {
-                      const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || `Invoice ${customerInvoices.indexOf(invoice) + 1}`;
-                      const link = emailData?.invoiceLinks?.[invoiceNum] || invoiceLinksData[invoiceNum] || "";
-                      
-                      if (!link || link.trim() === "") {
-                        missingLinks.push(invoiceNum);
-                      } else if (!isValidURL(link.trim())) {
-                        invalidLinks.push(invoiceNum);
-                      }
-                    }
-
-                    if (missingLinks.length > 0) {
-                      alert(`Please provide links for the following invoices: ${missingLinks.join(", ")}`);
-                      return;
-                    }
-
-                    if (invalidLinks.length > 0) {
-                      alert(`Please provide valid URLs for the following invoices: ${invalidLinks.join(", ")}`);
-                      return;
-                    }
-
-                    if (currentCustomerIndex < customersList.length - 1) {
-                      setCurrentCustomerIndex(currentCustomerIndex + 1);
-                    } else {
-                      // All customers processed, generate emails
-                      generateEmailsAfterCollection();
-                    }
-                  }}
-                  className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg"
-                >
-                  {currentCustomerIndex < customersList.length - 1 ? (
-                    <>
-                      Next
-                      <svg
-                        className="w-5 h-5 ml-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      Generate Emails
-                      <svg
-                        className="w-5 h-5 ml-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mt-8 max-w-2xl mx-auto">
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
-                    style={{
-                      width: `${
-                        ((currentCustomerIndex + 1) / customersList.length) *
-                        100
-                      }%`,
-                    }}
-                  ></div>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 mt-2">
-                  <span>Customer Setup</span>
-                  <span>
-                    {Math.round(
-                      ((currentCustomerIndex + 1) / customersList.length) * 100
-                    )}
-                    % Complete
-                  </span>
+                <div>
+                  <h3 className="text-lg font-bold text-blue-800">
+                    Current Invoices Already Sent
+                  </h3>
+                  <p className="text-sm text-blue-600">
+                    These customers had current invoices but all were already
+                    sent previously
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-blue-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {skippedCurrentSentCustomers.map((customer, index) => (
+                    <div
+                      key={index}
+                      className="text-sm text-blue-700 bg-blue-50 px-3 py-1 rounded-lg"
+                    >
+                      {customer}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-sm text-blue-500">
+                  Total skipped: {skippedCurrentSentCustomers.length} customers
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Email Results */}
-        {processedEmails.length > 0 && (
-          <div
-            className={`rounded-2xl shadow-2xl border overflow-hidden ${
-              currentPhase === "current"
-                ? "bg-white border-gray-100"
-                : "bg-white border-gray-100"
-            }`}
-          >
-            {/* Email Header */}
-            <div
-              className={`px-8 py-6 border-b ${
-                currentPhase === "current"
-                  ? "bg-gradient-to-r from-slate-50 to-blue-50 border-slate-200"
-                  : "bg-gradient-to-r from-slate-50 to-orange-50 border-slate-200"
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2
-                    className={`text-3xl font-bold mb-1 ${
-                      currentPhase === "current"
-                        ? "text-gray-800"
-                        : "text-gray-800"
-                    }`}
-                  >
-                    {currentPhase === "current"
-                      ? "Current Invoice Emails"
-                      : "Overdue Invoice Emails"}
-                  </h2>
-                  <p className="text-gray-600">
-                    Email {currentEmailIndex + 1} of {processedEmails.length}{" "}
-                    customers
-                    {currentPhase === "current" && overdueEmails.length > 0 && (
-                      <span className="ml-2 text-sm">
-                        • {overdueEmails.length} overdue emails to follow
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={copyEmailToClipboard}
-                    className="flex items-center px-5 py-2.5 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors font-medium shadow-sm"
-                    title="Copy email to clipboard"
-                  >
+          {/* Generate Button - Hide after clicking */}
+          {!isCollectingEmails && processedEmails.length === 0 && (
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={processFiles}
+                disabled={!invoiceFile || !noContactFile || isProcessing}
+                className="px-6 py-3 text-white rounded border-2 font-medium text-sm disabled:bg-gray-400 disabled:border-gray-400 disabled:cursor-not-allowed hover:opacity-90 transition-all"
+                style={{
+                  background:
+                    !invoiceFile || !noContactFile || isProcessing
+                      ? "#9CA3AF"
+                      : "linear-gradient(to right, #B06AB3, #4568DC)",
+                  borderColor:
+                    !invoiceFile || !noContactFile || isProcessing
+                      ? "#9CA3AF"
+                      : "#4568DC",
+                  boxShadow: "4px 4px 0px #000000",
+                }}
+              >
+                {isProcessing ? (
+                  <div className="flex items-center justify-center">
                     <svg
-                      className="w-4 h-4 mr-2"
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing Files...
+                  </div>
+                ) : (
+                  "Generate Emails"
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Email Collection Phase */}
+          {isCollectingEmails && (
+            <div
+              className="bg-white rounded-lg border-2 border-purple-600 mb-6"
+              style={{ boxShadow: "4px 4px 0px #000000" }}
+            >
+              <div className="p-4 border-b-2 border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-1">
+                      Customer Email Setup
+                    </h2>
+                    <p className="text-xs text-gray-600">
+                      Configure email addresses for invoice delivery
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">Progress</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {currentCustomerIndex + 1} of {customersList.length}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {
+                        Object.keys(customerEmailData).filter(
+                          (key) => customerEmailData[key]?.email
+                        ).length
+                      }{" "}
+                      pre-filled
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <div className="mb-4">
+                  <div className="flex items-center justify-center w-10 h-10 bg-gray-900 rounded-full mx-auto mb-3">
+                    <svg
+                      className="w-5 h-5 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -2431,21 +2207,184 @@ ${closingRequest}`;
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                       />
                     </svg>
-                    Copy
-                  </button>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 text-center mb-1">
+                    {customersList[currentCustomerIndex]}
+                  </h3>
+                  <p className="text-xs text-gray-600 text-center">
+                    {customerEmailData[customersList[currentCustomerIndex]]
+                      ?.email
+                      ? "Email pre-filled from uploaded file - review and update if needed"
+                      : "Configure email delivery settings for this customer"}
+                  </p>
+                  {customerEmailData[customersList[currentCustomerIndex]]
+                    ?.email && (
+                    <div className="flex justify-center mt-2">
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium border border-green-300">
+                        ✓ Pre-filled from file
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="max-w-xl mx-auto space-y-3">
+                  <div className="bg-white rounded p-3 border-2 border-gray-300">
+                    <label className="block text-xs font-bold text-gray-800 mb-2">
+                      Primary Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={
+                        customerEmailData[customersList[currentCustomerIndex]]
+                          ?.email || ""
+                      }
+                      onChange={(e) =>
+                        setCustomerEmailData((prev) => ({
+                          ...prev,
+                          [customersList[currentCustomerIndex]]: {
+                            ...prev[customersList[currentCustomerIndex]],
+                            email: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-sm"
+                      placeholder="Enter customer email address"
+                      required
+                    />
+                  </div>
+
+                  <div className="bg-white rounded p-3 border-2 border-gray-300">
+                    <label className="block text-xs font-bold text-gray-800 mb-2">
+                      CC Email Address (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={
+                        customerEmailData[customersList[currentCustomerIndex]]
+                          ?.cc || ""
+                      }
+                      onChange={(e) =>
+                        setCustomerEmailData((prev) => ({
+                          ...prev,
+                          [customersList[currentCustomerIndex]]: {
+                            ...prev[customersList[currentCustomerIndex]],
+                            cc: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-sm"
+                      placeholder="Enter CC email address (optional)"
+                    />
+                  </div>
+
+                  {/* Invoice Links Section */}
+                  <div
+                    className="bg-yellow-100 rounded p-3 border-2 border-yellow-400"
+                    style={{ boxShadow: "2px 2px 0px #000000" }}
+                  >
+                    <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        />
+                      </svg>
+                      Invoice Links Required *
+                    </h3>
+                    <p className="text-xs text-gray-700 mb-3">
+                      Enter the payment link for each invoice. All links are
+                      required.
+                    </p>
+
+                    <div className="space-y-2">
+                      {(() => {
+                        const currentCustomer =
+                          customersList[currentCustomerIndex];
+                        const customerInvoices =
+                          window.tempGroupedByCustomer?.[currentCustomer] || [];
+
+                        return customerInvoices.map((invoice, index) => {
+                          const invoiceNum =
+                            invoice.Num ||
+                            invoice.num ||
+                            invoice.Number ||
+                            invoice.number ||
+                            `Invoice ${index + 1}`;
+                          const dueDate = new Date(
+                            invoice["Due date"] ||
+                              invoice["due date"] ||
+                              invoice.duedate
+                          ).toLocaleDateString();
+
+                          return (
+                            <div
+                              key={index}
+                              className="bg-white rounded p-2 border-2 border-gray-300"
+                            >
+                              <label className="block text-xs font-medium text-gray-800 mb-1">
+                                Invoice #{invoiceNum} (Due: {dueDate}) *
+                              </label>
+                              <input
+                                type="url"
+                                value={
+                                  customerEmailData[currentCustomer]
+                                    ?.invoiceLinks?.[invoiceNum] ||
+                                  invoiceLinksData[invoiceNum] ||
+                                  ""
+                                }
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setCustomerEmailData((prev) => ({
+                                    ...prev,
+                                    [currentCustomer]: {
+                                      ...prev[currentCustomer],
+                                      invoiceLinks: {
+                                        ...prev[currentCustomer]?.invoiceLinks,
+                                        [invoiceNum]: value,
+                                      },
+                                    },
+                                  }));
+                                }}
+                                className="w-full px-2 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-xs"
+                                placeholder="https://example.com/invoice-payment-link"
+                                required
+                              />
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-6 max-w-xl mx-auto">
                   <button
-                    onClick={prevEmail}
-                    disabled={
-                      currentEmailIndex === 0 &&
-                      !(currentPhase === "overdue" && currentEmails.length > 0)
-                    }
-                    className="flex items-center px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    onClick={() => {
+                      if (currentCustomerIndex > 0) {
+                        setCurrentCustomerIndex(currentCustomerIndex - 1);
+                      }
+                    }}
+                    disabled={currentCustomerIndex === 0}
+                    className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded border-2 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 transition-colors font-medium text-sm"
+                    style={{
+                      boxShadow:
+                        currentCustomerIndex === 0
+                          ? "none"
+                          : "2px 2px 0px #000000",
+                    }}
                   >
                     <svg
-                      className="w-4 h-4 mr-2"
+                      className="w-4 h-4 mr-1"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -2459,14 +2398,189 @@ ${closingRequest}`;
                     </svg>
                     Previous
                   </button>
-                  {currentPhase === "current" && (
-                    <button
-                      onClick={markSentAndNext}
-                      disabled={
-                        currentEmailIndex === processedEmails.length - 1 &&
-                        overdueEmails.length === 0
+
+                  <button
+                    onClick={() => {
+                      const currentCustomer =
+                        customersList[currentCustomerIndex];
+                      const emailData = customerEmailData[currentCustomer];
+
+                      if (!emailData?.email || emailData.email.trim() === "") {
+                        alert("Please enter an email for this customer");
+                        return;
                       }
-                      className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+
+                      // Validate all invoice links are provided and valid
+                      const customerInvoices =
+                        window.tempGroupedByCustomer?.[currentCustomer] || [];
+                      const missingLinks = [];
+                      const invalidLinks = [];
+
+                      for (const invoice of customerInvoices) {
+                        const invoiceNum =
+                          invoice.Num ||
+                          invoice.num ||
+                          invoice.Number ||
+                          invoice.number ||
+                          `Invoice ${customerInvoices.indexOf(invoice) + 1}`;
+                        const link =
+                          emailData?.invoiceLinks?.[invoiceNum] ||
+                          invoiceLinksData[invoiceNum] ||
+                          "";
+
+                        if (!link || link.trim() === "") {
+                          missingLinks.push(invoiceNum);
+                        } else if (!isValidURL(link.trim())) {
+                          invalidLinks.push(invoiceNum);
+                        }
+                      }
+
+                      if (missingLinks.length > 0) {
+                        alert(
+                          `Please provide links for the following invoices: ${missingLinks.join(
+                            ", "
+                          )}`
+                        );
+                        return;
+                      }
+
+                      if (invalidLinks.length > 0) {
+                        alert(
+                          `Please provide valid URLs for the following invoices: ${invalidLinks.join(
+                            ", "
+                          )}`
+                        );
+                        return;
+                      }
+
+                      if (currentCustomerIndex < customersList.length - 1) {
+                        setCurrentCustomerIndex(currentCustomerIndex + 1);
+                      } else {
+                        // All customers processed, generate emails
+                        generateEmailsAfterCollection();
+                      }
+                    }}
+                    className="flex items-center px-4 py-2 text-white rounded border-2 hover:opacity-90 transition-all font-medium text-sm"
+                    style={{
+                      background: "linear-gradient(to right, #B06AB3, #4568DC)",
+                      borderColor: "#4568DC",
+                      boxShadow: "2px 2px 0px #000000",
+                    }}
+                  >
+                    {currentCustomerIndex < customersList.length - 1 ? (
+                      <>
+                        Next
+                        <svg
+                          className="w-4 h-4 ml-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        Generate Emails
+                        <svg
+                          className="w-5 h-5 ml-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-8 max-w-2xl mx-auto">
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="h-3 rounded-full transition-all duration-500 ease-out"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #B06AB3, #4568DC)",
+                        width: `${
+                          ((currentCustomerIndex + 1) / customersList.length) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-500 mt-2">
+                    <span>Customer Setup</span>
+                    <span>
+                      {Math.round(
+                        ((currentCustomerIndex + 1) / customersList.length) *
+                          100
+                      )}
+                      % Complete
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Email Results */}
+          {processedEmails.length > 0 && (
+            <div
+              className={`rounded-2xl shadow-2xl border overflow-hidden ${
+                currentPhase === "current"
+                  ? "bg-white border-gray-100"
+                  : "bg-white border-gray-100"
+              }`}
+            >
+              {/* Email Header */}
+              <div
+                className={`px-8 py-6 border-b ${
+                  currentPhase === "current"
+                    ? "bg-gradient-to-r from-slate-50 to-blue-50 border-slate-200"
+                    : "bg-gradient-to-r from-slate-50 to-orange-50 border-slate-200"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2
+                      className={`text-3xl font-bold mb-1 ${
+                        currentPhase === "current"
+                          ? "text-gray-800"
+                          : "text-gray-800"
+                      }`}
+                    >
+                      {currentPhase === "current"
+                        ? "Current Invoice Emails"
+                        : "Overdue Invoice Emails"}
+                    </h2>
+                    <p className="text-gray-600">
+                      Email {currentEmailIndex + 1} of {processedEmails.length}{" "}
+                      customers
+                      {currentPhase === "current" &&
+                        overdueEmails.length > 0 && (
+                          <span className="ml-2 text-sm">
+                            • {overdueEmails.length} overdue emails to follow
+                          </span>
+                        )}
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={copyEmailToClipboard}
+                      className="flex items-center px-5 py-2.5 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors font-medium shadow-sm"
+                      title="Copy email to clipboard"
                     >
                       <svg
                         className="w-4 h-4 mr-2"
@@ -2478,238 +2592,300 @@ ${closingRequest}`;
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M5 13l4 4L19 7"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                         />
                       </svg>
-                      Sent & Next
+                      Copy
                     </button>
-                  )}
-                  <button
-                    onClick={nextEmail}
-                    disabled={
-                      currentEmailIndex === processedEmails.length - 1 &&
-                      (currentPhase === "overdue" || overdueEmails.length === 0)
-                    }
-                    className={`flex items-center px-5 py-2.5 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm ${
-                      currentPhase === "current"
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : "bg-orange-600 hover:bg-orange-700"
-                    }`}
-                  >
-                    {currentEmailIndex === processedEmails.length - 1 &&
-                    currentPhase === "current" &&
-                    overdueEmails.length > 0
-                      ? "Switch to Overdue"
-                      : "Next"}
-                    <svg
-                      className="w-4 h-4 ml-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                    <button
+                      onClick={prevEmail}
+                      disabled={
+                        currentEmailIndex === 0 &&
+                        !(
+                          currentPhase === "overdue" && currentEmails.length > 0
+                        )
+                      }
+                      className="flex items-center px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #B06AB3, #4568DC)",
+                        boxShadow: "2px 2px 0px #000000",
+                      }}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                      Previous
+                    </button>
+                    {currentPhase === "current" && (
+                      <button
+                        onClick={markSentAndNext}
+                        disabled={
+                          currentEmailIndex === processedEmails.length - 1 &&
+                          overdueEmails.length === 0
+                        }
+                        className="flex items-center px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        style={{
+                          background:
+                            "linear-gradient(to right, #B06AB3, #4568DC)",
+                          boxShadow: "2px 2px 0px #000000",
+                        }}
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Sent & Next
+                      </button>
+                    )}
+                    <button
+                      onClick={nextEmail}
+                      disabled={
+                        currentEmailIndex === processedEmails.length - 1 &&
+                        (currentPhase === "overdue" ||
+                          overdueEmails.length === 0)
+                      }
+                      className="flex items-center px-5 py-2.5 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium hover:opacity-90"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #B06AB3, #4568DC)",
+                        boxShadow: "2px 2px 0px #000000",
+                      }}
+                    >
+                      {currentEmailIndex === processedEmails.length - 1 &&
+                      currentPhase === "current" &&
+                      overdueEmails.length > 0
+                        ? "Switch to Overdue"
+                        : "Next"}
+                      <svg
+                        className="w-4 h-4 ml-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Customer Info */}
-            {processedEmails[currentEmailIndex] && (
-              <>
-                {/* Email Stats - Moved to top */}
-                <div
-                  className={`px-6 py-4 border-b ${
-                    currentPhase === "current"
-                      ? "bg-blue-50 border-blue-100"
-                      : "bg-orange-50 border-orange-100"
-                  }`}
-                >
-                  <h3
-                    className={`text-xl font-bold mb-4 ${
+              {/* Customer Info */}
+              {processedEmails[currentEmailIndex] && (
+                <>
+                  {/* Email Stats - Moved to top */}
+                  <div
+                    className={`px-6 py-4 border-b ${
                       currentPhase === "current"
-                        ? "text-blue-900"
-                        : "text-orange-900"
+                        ? "bg-blue-50 border-blue-100"
+                        : "bg-orange-50 border-orange-100"
                     }`}
                   >
-                    {processedEmails[currentEmailIndex].customer}
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                    <div
-                      className={`bg-white p-4 rounded-xl border-2 ${
+                    <h3
+                      className={`text-xl font-bold mb-4 ${
                         currentPhase === "current"
-                          ? "border-blue-200"
-                          : "border-orange-200"
-                      } shadow-sm`}
-                    >
-                      <p
-                        className={`font-semibold ${
-                          currentPhase === "current"
-                            ? "text-blue-600"
-                            : "text-orange-600"
-                        }`}
-                      >
-                        Total Amount
-                      </p>
-                      <p
-                        className={`text-xl font-bold ${
-                          currentPhase === "current"
-                            ? "text-blue-900"
-                            : "text-orange-900"
-                        }`}
-                      >
-                        $
-                        {processedEmails[currentEmailIndex].totalAmount.toFixed(
-                          2
-                        )}
-                      </p>
-                    </div>
-                    <div
-                      className={`bg-white p-4 rounded-xl border-2 ${
-                        currentPhase === "current"
-                          ? "border-blue-200"
-                          : "border-orange-200"
-                      } shadow-sm`}
-                    >
-                      <p
-                        className={`font-semibold ${
-                          currentPhase === "current"
-                            ? "text-blue-600"
-                            : "text-orange-600"
-                        }`}
-                      >
-                        Total Invoices
-                      </p>
-                      <p
-                        className={`text-xl font-bold ${
-                          currentPhase === "current"
-                            ? "text-blue-900"
-                            : "text-orange-900"
-                        }`}
-                      >
-                        {processedEmails[currentEmailIndex].totalInvoices}
-                      </p>
-                    </div>
-                    {currentPhase === "overdue" && (
-                      <>
-                        <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
-                          <p className="text-orange-600 font-semibold">
-                            Overdue Count
-                          </p>
-                          <p className="text-xl font-bold text-orange-900">
-                            {processedEmails[currentEmailIndex].overdueCount}
-                          </p>
-                        </div>
-                        <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
-                          <p className="text-orange-600 font-semibold">
-                            Overdue Amount
-                          </p>
-                          <p className="text-xl font-bold text-orange-900">
-                            $
-                            {processedEmails[
-                              currentEmailIndex
-                            ].overdueAmount.toFixed(2)}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Email Title and Customer Contact Info */}
-                <div
-                  className={`px-6 py-4 border-b ${
-                    currentPhase === "current"
-                      ? "bg-slate-50 border-slate-200"
-                      : "bg-red-50 border-red-100"
-                  }`}
-                >
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                      Email Subject:
-                    </h4>
-                    <div
-                      className={`p-4 rounded-xl font-semibold text-lg ${
-                        currentPhase === "current"
-                          ? "bg-blue-100 text-blue-800 border-2 border-blue-200"
-                          : "bg-red-100 text-red-800 border-2 border-red-200"
+                          ? "text-blue-900"
+                          : "text-orange-900"
                       }`}
                     >
-                      {processedEmails[currentEmailIndex].emailTitle}
+                      {processedEmails[currentEmailIndex].customer}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                      <div
+                        className={`bg-white p-4 rounded-xl border-2 ${
+                          currentPhase === "current"
+                            ? "border-blue-200"
+                            : "border-orange-200"
+                        } shadow-sm`}
+                      >
+                        <p
+                          className={`font-semibold ${
+                            currentPhase === "current"
+                              ? "text-blue-600"
+                              : "text-orange-600"
+                          }`}
+                        >
+                          Total Amount
+                        </p>
+                        <p
+                          className={`text-xl font-bold ${
+                            currentPhase === "current"
+                              ? "text-blue-900"
+                              : "text-orange-900"
+                          }`}
+                        >
+                          $
+                          {processedEmails[
+                            currentEmailIndex
+                          ].totalAmount.toFixed(2)}
+                        </p>
+                      </div>
+                      <div
+                        className={`bg-white p-4 rounded-xl border-2 ${
+                          currentPhase === "current"
+                            ? "border-blue-200"
+                            : "border-orange-200"
+                        } shadow-sm`}
+                      >
+                        <p
+                          className={`font-semibold ${
+                            currentPhase === "current"
+                              ? "text-blue-600"
+                              : "text-orange-600"
+                          }`}
+                        >
+                          Total Invoices
+                        </p>
+                        <p
+                          className={`text-xl font-bold ${
+                            currentPhase === "current"
+                              ? "text-blue-900"
+                              : "text-orange-900"
+                          }`}
+                        >
+                          {processedEmails[currentEmailIndex].totalInvoices}
+                        </p>
+                      </div>
+                      {currentPhase === "overdue" && (
+                        <>
+                          <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
+                            <p className="text-orange-600 font-semibold">
+                              Overdue Count
+                            </p>
+                            <p className="text-xl font-bold text-orange-900">
+                              {processedEmails[currentEmailIndex].overdueCount}
+                            </p>
+                          </div>
+                          <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
+                            <p className="text-orange-600 font-semibold">
+                              Overdue Amount
+                            </p>
+                            <p className="text-xl font-bold text-orange-900">
+                              $
+                              {processedEmails[
+                                currentEmailIndex
+                              ].overdueAmount.toFixed(2)}
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  {/* Email Title and Customer Contact Info */}
+                  <div
+                    className={`px-6 py-4 border-b ${
+                      currentPhase === "current"
+                        ? "bg-slate-50 border-slate-200"
+                        : "bg-red-50 border-red-100"
+                    }`}
+                  >
+                    <div className="mb-4">
                       <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        To:
+                        Email Subject:
                       </h4>
-                      <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
-                        <span className="text-gray-900 font-mono text-lg">
-                          {processedEmails[currentEmailIndex].customerEmail ||
-                            "Not set"}
-                        </span>
+                      <div
+                        className={`p-4 rounded-xl font-semibold text-lg ${
+                          currentPhase === "current"
+                            ? "bg-blue-100 text-blue-800 border-2 border-blue-200"
+                            : "bg-red-100 text-red-800 border-2 border-red-200"
+                        }`}
+                      >
+                        {processedEmails[currentEmailIndex].emailTitle}
                       </div>
                     </div>
 
-                    {processedEmails[currentEmailIndex].customerCC && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                          CC:
+                          To:
                         </h4>
                         <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
                           <span className="text-gray-900 font-mono text-lg">
-                            {processedEmails[currentEmailIndex].customerCC}
+                            {processedEmails[currentEmailIndex].customerEmail ||
+                              "Not set"}
                           </span>
                         </div>
                       </div>
+
+                      {processedEmails[currentEmailIndex].customerCC && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            CC:
+                          </h4>
+                          <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
+                            <span className="text-gray-900 font-mono text-lg">
+                              {processedEmails[currentEmailIndex].customerCC}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Email Content */}
+                  <div className="bg-gray-50">
+                    {emailSignature ||
+                    processedEmails[currentEmailIndex].content.includes(
+                      '<div style="font-family: Calibri'
+                    ) ? (
+                      // If signature is present or HTML content, render as HTML to preserve formatting
+                      <div
+                        className="w-full min-h-96 p-8 text-gray-800 bg-white leading-relaxed"
+                        style={{
+                          fontFamily: "Calibri, Arial, sans-serif",
+                          fontSize: "14pt",
+                          lineHeight: "1.6",
+                          maxWidth: "none",
+                        }}
+                        dangerouslySetInnerHTML={{
+                          __html: processedEmails[currentEmailIndex].content,
+                        }}
+                      />
+                    ) : (
+                      // If no signature and plain text, render as div with Calibri font
+                      <div
+                        className="w-full min-h-96 p-8 text-gray-800 bg-white leading-relaxed whitespace-pre-wrap"
+                        style={{
+                          fontFamily: "Calibri, Arial, sans-serif",
+                          fontSize: "14pt",
+                          lineHeight: "1.6",
+                        }}
+                      >
+                        {processedEmails[currentEmailIndex].content}
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {/* Email Content */}
-                <div className="bg-gray-50">
-                  {emailSignature ||
-                  processedEmails[currentEmailIndex].content.includes(
-                    '<div style="font-family: Calibri'
-                  ) ? (
-                    // If signature is present or HTML content, render as HTML to preserve formatting
-                    <div
-                      className="w-full min-h-96 p-8 text-gray-800 bg-white leading-relaxed"
-                      style={{
-                        fontFamily: "Calibri, Arial, sans-serif",
-                        fontSize: "14pt",
-                        lineHeight: "1.6",
-                        maxWidth: "none",
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: processedEmails[currentEmailIndex].content,
-                      }}
-                    />
-                  ) : (
-                    // If no signature and plain text, render as div with Calibri font
-                    <div
-                      className="w-full min-h-96 p-8 text-gray-800 bg-white leading-relaxed whitespace-pre-wrap"
-                      style={{
-                        fontFamily: "Calibri, Arial, sans-serif",
-                        fontSize: "14pt",
-                        lineHeight: "1.6",
-                      }}
-                    >
-                      {processedEmails[currentEmailIndex].content}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

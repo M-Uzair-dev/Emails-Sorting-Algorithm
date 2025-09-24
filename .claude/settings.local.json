@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(/C:\\Users\\Noman\\Desktop\\coding files\\EmailingService\\my-app\\src\\app/**)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(node:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
