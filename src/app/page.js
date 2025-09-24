@@ -1519,28 +1519,13 @@ ${closingRequest}`;
 
   return (
     <>
-      <style jsx>{`
-        input[type="file"]::-webkit-file-upload-button {
-          background: linear-gradient(to right, #b06ab3, #4568dc) !important;
-          border: none !important;
-        }
-        input[type="file"]::file-selector-button {
-          background: linear-gradient(to right, #b06ab3, #4568dc) !important;
-          border: none !important;
-        }
-      `}</style>
       <div
-        className="min-h-screen"
-        // style={{ background: "linear-gradient(to right, #B06AB3, #4568DC)" }}
-        style={{ background: "#ddddddff" }}
+        className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50"
       >
         <div className="container mx-auto px-4 py-6 max-w-5xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <div
-              className="bg-white rounded-lg p-6 mb-6"
-              style={{ boxShadow: "4px 4px 0px #000000" }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 Invoice Email Generator
               </h1>
@@ -1552,10 +1537,7 @@ ${closingRequest}`;
 
           {/* File Upload Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div
-              className="bg-white rounded-lg p-4 border-2 border-purple-600"
-              style={{ boxShadow: "3px 3px 0px #000000" }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow">
               <div className="mb-3">
                 <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Invoice Data File
@@ -1569,15 +1551,12 @@ ${closingRequest}`;
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => handleFileUpload(e, "invoice")}
-                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                  className="w-full p-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-700 hover:border-gray-400 transition-colors file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
               </div>
               {invoiceFile && (
-                <div
-                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
-                  style={{ boxShadow: "2px 2px 0px #000000" }}
-                >
-                  <p className="text-xs text-green-800 flex items-center">
+                <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-100">
+                  <p className="text-xs text-green-700 flex items-center font-medium">
                     <svg
                       className="w-4 h-4 mr-2"
                       fill="currentColor"
@@ -1595,10 +1574,7 @@ ${closingRequest}`;
               )}
             </div>
 
-            <div
-              className="bg-white rounded-lg p-4 border-2 border-purple-600"
-              style={{ boxShadow: "3px 3px 0px #000000" }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow">
               <div className="mb-3">
                 <h2 className="text-sm font-bold text-gray-900 mb-1">
                   No Contact Customers
@@ -1612,15 +1588,12 @@ ${closingRequest}`;
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => handleFileUpload(e, "noContact")}
-                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                  className="w-full p-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-700 hover:border-gray-400 transition-colors file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
               </div>
               {noContactFile && (
-                <div
-                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
-                  style={{ boxShadow: "2px 2px 0px #000000" }}
-                >
-                  <p className="text-xs text-green-800 flex items-center">
+                <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-100">
+                  <p className="text-xs text-green-700 flex items-center font-medium">
                     <svg
                       className="w-4 h-4 mr-2"
                       fill="currentColor"
@@ -1638,10 +1611,7 @@ ${closingRequest}`;
               )}
             </div>
 
-            <div
-              className="bg-white rounded-lg p-4 border-2 border-purple-600"
-              style={{ boxShadow: "3px 3px 0px #000000" }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow">
               <div className="mb-3">
                 <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Sent Invoices Tracker
@@ -1655,15 +1625,12 @@ ${closingRequest}`;
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => handleFileUpload(e, "sentInvoices")}
-                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                  className="w-full p-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-700 hover:border-gray-400 transition-colors file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
               </div>
               {sentInvoicesFile && (
-                <div
-                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
-                  style={{ boxShadow: "2px 2px 0px #000000" }}
-                >
-                  <p className="text-xs text-green-800 flex items-center">
+                <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-100">
+                  <p className="text-xs text-green-700 flex items-center font-medium">
                     <svg
                       className="w-4 h-4 mr-2"
                       fill="currentColor"
@@ -1681,10 +1648,7 @@ ${closingRequest}`;
               )}
             </div>
 
-            <div
-              className="bg-white rounded-lg p-4 border-2 border-purple-600"
-              style={{ boxShadow: "3px 3px 0px #000000" }}
-            >
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 hover:shadow-md transition-shadow">
               <div className="mb-3">
                 <h2 className="text-sm font-bold text-gray-900 mb-1">
                   Customer Emails
@@ -1698,15 +1662,12 @@ ${closingRequest}`;
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => handleFileUpload(e, "customerEmails")}
-                  className="w-full p-3 border-2 border-dashed border-gray-400 rounded text-xs text-gray-700 hover:border-gray-600 transition-colors file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+                  className="w-full p-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-700 hover:border-gray-400 transition-colors file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
               </div>
               {customerEmailsFile && (
-                <div
-                  className="mt-3 p-2 bg-green-100 rounded border-2 border-green-400"
-                  style={{ boxShadow: "2px 2px 0px #000000" }}
-                >
-                  <p className="text-xs text-green-800 flex items-center">
+                <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-100">
+                  <p className="text-xs text-green-700 flex items-center font-medium">
                     <svg
                       className="w-4 h-4 mr-2"
                       fill="currentColor"
@@ -1726,10 +1687,7 @@ ${closingRequest}`;
           </div>
 
           {/* Invoice Links File Upload Section */}
-          <div
-            className="bg-white rounded-lg p-4 border-2 border-purple-600 mb-4"
-            style={{ boxShadow: "3px 3px 0px #000000" }}
-          >
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 mb-4 hover:shadow-md transition-shadow">
             <div className="mb-3">
               <h2 className="text-sm font-bold text-gray-900 mb-1">
                 Invoice Links (Optional)
@@ -1770,10 +1728,7 @@ ${closingRequest}`;
           </div>
 
           {/* Email Signature Section */}
-          <div
-            className="bg-white rounded-lg p-4 border-2 border-purple-600 mb-4"
-            style={{ boxShadow: "3px 3px 0px #000000" }}
-          >
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 mb-4 hover:shadow-md transition-shadow">
             <div className="mb-3">
               <h2 className="text-sm font-bold text-gray-900 mb-1">
                 Email Signature
@@ -1790,7 +1745,7 @@ ${closingRequest}`;
                   Paste Your Signature Here
                 </label>
                 <div
-                  className="w-full min-h-24 p-3 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
+                  className="w-full min-h-24 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
                   contentEditable
                   suppressContentEditableWarning={true}
                   onInput={(e) => setEmailSignature(e.target.innerHTML)}
@@ -1828,7 +1783,7 @@ ${closingRequest}`;
             </div>
 
             {emailSignature && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-100">
                 <p className="text-sm text-green-800 flex items-center">
                   <svg
                     className="w-4 h-4 mr-2"
@@ -1879,10 +1834,9 @@ ${closingRequest}`;
                 </div>
                 <button
                   onClick={exportUpdatedSentInvoices}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  className="px-4 py-2 text-white rounded-lg hover:scale-105 active:scale-95 transition-all flex items-center shadow-md hover:shadow-lg"
                   style={{
-                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
-                    boxShadow: "2px 2px 0px #000000",
+                    background: "linear-gradient(to right, #6366f1, #8b5cf6)",
                   }}
                 >
                   <svg
@@ -1936,10 +1890,9 @@ ${closingRequest}`;
                 </div>
                 <button
                   onClick={exportCustomerEmails}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  className="px-4 py-2 text-white rounded-lg hover:scale-105 active:scale-95 transition-all flex items-center shadow-md hover:shadow-lg"
                   style={{
-                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
-                    boxShadow: "2px 2px 0px #000000",
+                    background: "linear-gradient(to right, #6366f1, #8b5cf6)",
                   }}
                 >
                   <svg
@@ -1993,10 +1946,9 @@ ${closingRequest}`;
                 </div>
                 <button
                   onClick={exportInvoiceLinks}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors flex items-center"
+                  className="px-4 py-2 text-white rounded-lg hover:scale-105 active:scale-95 transition-all flex items-center shadow-md hover:shadow-lg"
                   style={{
-                    background: "linear-gradient(to right, #B06AB3, #4568DC)",
-                    boxShadow: "2px 2px 0px #000000",
+                    background: "linear-gradient(to right, #6366f1, #8b5cf6)",
                   }}
                 >
                   <svg
@@ -2118,17 +2070,12 @@ ${closingRequest}`;
               <button
                 onClick={processFiles}
                 disabled={!invoiceFile || !noContactFile || isProcessing}
-                className="px-6 py-3 text-white rounded border-2 font-medium text-sm disabled:bg-gray-400 disabled:border-gray-400 disabled:cursor-not-allowed hover:opacity-90 transition-all"
+                className="px-8 py-3 text-white rounded-xl font-medium text-sm disabled:bg-gray-400 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg hover:shadow-xl"
                 style={{
                   background:
                     !invoiceFile || !noContactFile || isProcessing
                       ? "#9CA3AF"
-                      : "linear-gradient(to right, #B06AB3, #4568DC)",
-                  borderColor:
-                    !invoiceFile || !noContactFile || isProcessing
-                      ? "#9CA3AF"
-                      : "#4568DC",
-                  boxShadow: "4px 4px 0px #000000",
+                      : "linear-gradient(to right, #6366f1, #8b5cf6)",
                 }}
               >
                 {isProcessing ? (
@@ -2163,11 +2110,8 @@ ${closingRequest}`;
 
           {/* Email Collection Phase */}
           {isCollectingEmails && (
-            <div
-              className="bg-white rounded-lg border-2 border-purple-600 mb-6"
-              style={{ boxShadow: "4px 4px 0px #000000" }}
-            >
-              <div className="p-4 border-b-2 border-gray-200">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-100 mb-6">
+              <div className="p-4 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900 mb-1">
@@ -2231,7 +2175,7 @@ ${closingRequest}`;
                 </div>
 
                 <div className="max-w-xl mx-auto space-y-3">
-                  <div className="bg-white rounded p-3 border-2 border-gray-300">
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
                     <label className="block text-xs font-bold text-gray-800 mb-2">
                       Primary Email Address *
                     </label>
@@ -2250,13 +2194,13 @@ ${closingRequest}`;
                           },
                         }))
                       }
-                      className="w-full px-3 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300 bg-white text-gray-900 placeholder-gray-400 text-sm"
                       placeholder="Enter customer email address"
                       required
                     />
                   </div>
 
-                  <div className="bg-white rounded p-3 border-2 border-gray-300">
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
                     <label className="block text-xs font-bold text-gray-800 mb-2">
                       CC Email Address (Optional)
                     </label>
@@ -2275,16 +2219,13 @@ ${closingRequest}`;
                           },
                         }))
                       }
-                      className="w-full px-3 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300 bg-white text-gray-900 placeholder-gray-400 text-sm"
                       placeholder="Enter CC email address (optional)"
                     />
                   </div>
 
                   {/* Invoice Links Section */}
-                  <div
-                    className="bg-yellow-100 rounded p-3 border-2 border-yellow-400"
-                    style={{ boxShadow: "2px 2px 0px #000000" }}
-                  >
+                  <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
                     <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
                       <svg
                         className="w-4 h-4 mr-1"
@@ -2329,7 +2270,7 @@ ${closingRequest}`;
                           return (
                             <div
                               key={index}
-                              className="bg-white rounded p-2 border-2 border-gray-300"
+                              className="bg-white rounded-lg p-2 border border-gray-200"
                             >
                               <label className="block text-xs font-medium text-gray-800 mb-1">
                                 Invoice #{invoiceNum} (Due: {dueDate}) *
@@ -2355,7 +2296,7 @@ ${closingRequest}`;
                                     },
                                   }));
                                 }}
-                                className="w-full px-2 py-2 border-2 border-gray-400 rounded focus:ring-1 focus:ring-gray-500 focus:border-gray-500 bg-white text-gray-900 placeholder-gray-500 text-xs"
+                                className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300 bg-white text-gray-900 placeholder-gray-400 text-xs"
                                 placeholder="https://example.com/invoice-payment-link"
                                 required
                               />
@@ -2375,13 +2316,7 @@ ${closingRequest}`;
                       }
                     }}
                     disabled={currentCustomerIndex === 0}
-                    className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded border-2 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 transition-colors font-medium text-sm"
-                    style={{
-                      boxShadow:
-                        currentCustomerIndex === 0
-                          ? "none"
-                          : "2px 2px 0px #000000",
-                    }}
+                    className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors font-medium text-sm"
                   >
                     <svg
                       className="w-4 h-4 mr-1"
@@ -2460,11 +2395,9 @@ ${closingRequest}`;
                         generateEmailsAfterCollection();
                       }
                     }}
-                    className="flex items-center px-4 py-2 text-white rounded border-2 hover:opacity-90 transition-all font-medium text-sm"
+                    className="flex items-center px-4 py-2 text-white rounded-lg hover:scale-105 active:scale-95 transition-all font-medium text-sm shadow-md hover:shadow-lg"
                     style={{
-                      background: "linear-gradient(to right, #B06AB3, #4568DC)",
-                      borderColor: "#4568DC",
-                      boxShadow: "2px 2px 0px #000000",
+                      background: "linear-gradient(to right, #6366f1, #8b5cf6)",
                     }}
                   >
                     {currentCustomerIndex < customersList.length - 1 ? (
@@ -2512,7 +2445,7 @@ ${closingRequest}`;
                       className="h-3 rounded-full transition-all duration-500 ease-out"
                       style={{
                         background:
-                          "linear-gradient(to right, #B06AB3, #4568DC)",
+                          "linear-gradient(to right, #6366f1, #8b5cf6)",
                         width: `${
                           ((currentCustomerIndex + 1) / customersList.length) *
                           100
@@ -2579,7 +2512,7 @@ ${closingRequest}`;
                   <div className="flex gap-3">
                     <button
                       onClick={copyEmailToClipboard}
-                      className="flex items-center px-5 py-2.5 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors font-medium shadow-sm"
+                      className="flex items-center px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 hover:scale-105 active:scale-95 transition-all font-medium shadow-sm border border-emerald-100"
                       title="Copy email to clipboard"
                     >
                       <svg
@@ -2605,11 +2538,10 @@ ${closingRequest}`;
                           currentPhase === "overdue" && currentEmails.length > 0
                         )
                       }
-                      className="flex items-center px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                      className="flex items-center px-5 py-2.5 text-white rounded-xl hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-md hover:shadow-lg"
                       style={{
                         background:
-                          "linear-gradient(to right, #B06AB3, #4568DC)",
-                        boxShadow: "2px 2px 0px #000000",
+                          "linear-gradient(to right, #6366f1, #8b5cf6)",
                       }}
                     >
                       <svg
@@ -2664,11 +2596,10 @@ ${closingRequest}`;
                         (currentPhase === "overdue" ||
                           overdueEmails.length === 0)
                       }
-                      className="flex items-center px-5 py-2.5 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium hover:opacity-90"
+                      className="flex items-center px-5 py-2.5 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
                       style={{
                         background:
-                          "linear-gradient(to right, #B06AB3, #4568DC)",
-                        boxShadow: "2px 2px 0px #000000",
+                          "linear-gradient(to right, #6366f1, #8b5cf6)",
                       }}
                     >
                       {currentEmailIndex === processedEmails.length - 1 &&
@@ -2716,10 +2647,10 @@ ${closingRequest}`;
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                       <div
-                        className={`bg-white p-4 rounded-xl border-2 ${
+                        className={`bg-white p-4 rounded-xl border ${
                           currentPhase === "current"
-                            ? "border-blue-200"
-                            : "border-orange-200"
+                            ? "border-blue-100"
+                            : "border-orange-100"
                         } shadow-sm`}
                       >
                         <p
@@ -2745,10 +2676,10 @@ ${closingRequest}`;
                         </p>
                       </div>
                       <div
-                        className={`bg-white p-4 rounded-xl border-2 ${
+                        className={`bg-white p-4 rounded-xl border ${
                           currentPhase === "current"
-                            ? "border-blue-200"
-                            : "border-orange-200"
+                            ? "border-blue-100"
+                            : "border-orange-100"
                         } shadow-sm`}
                       >
                         <p
@@ -2772,7 +2703,7 @@ ${closingRequest}`;
                       </div>
                       {currentPhase === "overdue" && (
                         <>
-                          <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
+                          <div className="bg-white p-4 rounded-xl border border-orange-100 shadow-sm">
                             <p className="text-orange-600 font-semibold">
                               Overdue Count
                             </p>
@@ -2780,7 +2711,7 @@ ${closingRequest}`;
                               {processedEmails[currentEmailIndex].overdueCount}
                             </p>
                           </div>
-                          <div className="bg-white p-4 rounded-xl border-2 border-orange-200 shadow-sm">
+                          <div className="bg-white p-4 rounded-xl border border-orange-100 shadow-sm">
                             <p className="text-orange-600 font-semibold">
                               Overdue Amount
                             </p>
@@ -2811,8 +2742,8 @@ ${closingRequest}`;
                       <div
                         className={`p-4 rounded-xl font-semibold text-lg ${
                           currentPhase === "current"
-                            ? "bg-blue-100 text-blue-800 border-2 border-blue-200"
-                            : "bg-red-100 text-red-800 border-2 border-red-200"
+                            ? "bg-blue-50 text-blue-800 border border-blue-100"
+                            : "bg-red-50 text-red-800 border border-red-100"
                         }`}
                       >
                         {processedEmails[currentEmailIndex].emailTitle}
@@ -2824,7 +2755,7 @@ ${closingRequest}`;
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">
                           To:
                         </h4>
-                        <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
+                        <div className="p-3 bg-white rounded-xl border border-gray-100">
                           <span className="text-gray-900 font-mono text-lg">
                             {processedEmails[currentEmailIndex].customerEmail ||
                               "Not set"}
@@ -2837,7 +2768,7 @@ ${closingRequest}`;
                           <h4 className="text-sm font-semibold text-gray-700 mb-2">
                             CC:
                           </h4>
-                          <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
+                          <div className="p-3 bg-white rounded-xl border border-gray-100">
                             <span className="text-gray-900 font-mono text-lg">
                               {processedEmails[currentEmailIndex].customerCC}
                             </span>
