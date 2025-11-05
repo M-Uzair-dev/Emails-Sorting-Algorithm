@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 /**
  * Reads an Excel file and returns parsed JSON data

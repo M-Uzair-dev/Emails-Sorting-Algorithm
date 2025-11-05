@@ -11,6 +11,7 @@ import ExportSection from "../components/Export/ExportSection";
 import CustomerInfoSection from "../components/CustomerInfo/CustomerInfoSection";
 import EmailCollectionPhase from "../components/CustomerEmailCollection/EmailCollectionPhase";
 import EmailDisplaySection from "../components/EmailDisplay/EmailDisplaySection";
+import WIPFileProcessor from "../components/WIPProcessor/WIPFileProcessor";
 import Button from "../components/UI/Button";
 
 export default function Home() {
@@ -193,6 +194,14 @@ export default function Home() {
               onPrevious={prevEmail}
               onNext={nextEmail}
               onMarkSentAndNext={markSentAndNext}
+            />
+          )}
+
+          {/* WIP File Processor - Show after emails are generated */}
+          {processedEmails.length > 0 && (
+            <WIPFileProcessor
+              noContactCustomers={removedNoContactCustomers}
+              reminderSentCustomers={skippedCurrentSentCustomers}
             />
           )}
         </div>
