@@ -12,7 +12,7 @@ export const calculateDaysPastDue = (dueDate) => {
   }
 
   const diffTime = today - due;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
 
