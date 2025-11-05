@@ -444,15 +444,37 @@ export const useEmailGenerator = () => {
       }
     }
 
-    // Update sent invoices data
+    // Get all current invoice numbers from the invoice data
+    const groupedByCustomer = window.tempGroupedByCustomer || {};
+    const currentInvoiceNumbers = new Set();
+
+    Object.values(groupedByCustomer).forEach(invoices => {
+      invoices.forEach(invoice => {
+        const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || "";
+        if (invoiceNum) {
+          currentInvoiceNumbers.add(invoiceNum.toString().trim());
+        }
+      });
+    });
+
+    // Normalize existing sent invoices to strings
+    const normalizedSentInvoices = sentInvoicesData.map((entry) =>
+      typeof entry === "string"
+        ? entry.trim()
+        : (entry.Num || entry["Invoice Number"] || entry.invoiceNumber || "").toString().trim()
+    ).filter(Boolean);
+
+    // Intersect: Keep only sent invoices that still exist in current invoice data
+    const intersectedSentInvoices = normalizedSentInvoices.filter(invoiceNum =>
+      currentInvoiceNumbers.has(invoiceNum)
+    );
+
+    // Add new sent entries to the intersection
     const updatedSentInvoicesData = [
-      ...sentInvoicesData.map((entry) =>
-        typeof entry === "string"
-          ? entry
-          : entry.Num || entry["Invoice Number"] || entry.invoiceNumber || ""
-      ),
+      ...intersectedSentInvoices,
       ...newSentEntries,
     ].filter(Boolean);
+
     setSentInvoicesData(updatedSentInvoicesData);
 
     setPendingSentEntries((prev) => [...prev, ...newSentEntries]);

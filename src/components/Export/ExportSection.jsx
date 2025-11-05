@@ -81,6 +81,19 @@ const ExportSection = ({
     }
 
     try {
+      // Get all current invoice numbers from the invoice data
+      const groupedByCustomer = window.tempGroupedByCustomer || {};
+      const currentInvoiceNumbers = new Set();
+
+      Object.values(groupedByCustomer).forEach(invoices => {
+        invoices.forEach(invoice => {
+          const invoiceNum = invoice.Num || invoice.num || invoice.Number || invoice.number || "";
+          if (invoiceNum) {
+            currentInvoiceNumbers.add(invoiceNum.toString().trim());
+          }
+        });
+      });
+
       // Combine existing invoice links data with new pending entries
       const allInvoiceLinks = { ...invoiceLinksData };
 
@@ -89,19 +102,30 @@ const ExportSection = ({
         allInvoiceLinks[entry.Invoice] = entry.Link;
       });
 
-      // Convert combined invoice links to worksheet format
-      const worksheetData = Object.entries(allInvoiceLinks).map(([invoice, link]) => ({
+      // Filter invoice links to only include invoices that exist in current data
+      const filteredInvoiceLinks = {};
+      Object.entries(allInvoiceLinks).forEach(([invoice, link]) => {
+        if (currentInvoiceNumbers.has(invoice.toString().trim())) {
+          filteredInvoiceLinks[invoice] = link;
+        }
+      });
+
+      // Convert filtered invoice links to worksheet format
+      const worksheetData = Object.entries(filteredInvoiceLinks).map(([invoice, link]) => ({
         Invoice: invoice,
         Link: link,
       }));
 
       exportToExcel(worksheetData, "invoice-links.xlsx", "InvoiceLinks");
 
-      alert(
-        `✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${worksheetData.length} invoice links\n📝 New entries added: ${pendingInvoiceLinksEntries.length}\n\n📁 Replace your original InvoiceLinks.xlsx with the downloaded file.`
-      );
+      const removedCount = Object.keys(allInvoiceLinks).length - Object.keys(filteredInvoiceLinks).length;
+      const alertMessage = removedCount > 0
+        ? `✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${worksheetData.length} invoice links\n📝 New entries added: ${pendingInvoiceLinksEntries.length}\n🗑️ Removed ${removedCount} links for paid/deleted invoices\n\n📁 Replace your original InvoiceLinks.xlsx with the downloaded file.`
+        : `✅ Exported invoice-links.xlsx file!\n\n📊 Total entries: ${worksheetData.length} invoice links\n📝 New entries added: ${pendingInvoiceLinksEntries.length}\n\n📁 Replace your original InvoiceLinks.xlsx with the downloaded file.`;
 
-      onInvoiceLinksExported(allInvoiceLinks);
+      alert(alertMessage);
+
+      onInvoiceLinksExported(filteredInvoiceLinks);
     } catch (error) {
       alert("Error exporting invoice links file.");
     }
