@@ -1,0 +1,33 @@
+Terms of Service / User Agreement
+
+Effective Date: December 25, 2025
+
+By using [Your App Name] (“we”, “our”, “us”), you agree to the following terms:
+
+1. Use of Service
+
+You must have a valid QuickBooks Online account to use our app.
+
+You are responsible for any activity performed through your account.
+
+2. Access and Account Security
+
+Do not share your OAuth credentials.
+
+Notify us immediately if you suspect unauthorized access.
+
+3. Data and Privacy
+
+Our Privacy Policy explains how your data is collected and used. By using the app, you consent to this.
+
+4. Liability
+
+We provide the app “as is.” We are not responsible for errors in your QuickBooks data or losses resulting from app usage.
+
+5. Modifications
+
+We may update these terms or the app at any time. Continued use constitutes acceptance.
+
+6. Contact
+
+Email: contact@yourapp.com
