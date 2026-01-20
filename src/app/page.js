@@ -13,6 +13,7 @@ import EmailCollectionPhase from "../components/CustomerEmailCollection/EmailCol
 import EmailDisplaySection from "../components/EmailDisplay/EmailDisplaySection";
 import WIPFileProcessor from "../components/WIPProcessor/WIPFileProcessor";
 import Button from "../components/UI/Button";
+import ARReportSection from "../components/ARReport/ARReportSection";
 
 export default function Home() {
   const {
@@ -66,6 +67,9 @@ export default function Home() {
     // UI states
     emailSignature,
     setEmailSignature,
+
+    // AR Report data
+    allInvoicesData,
   } = useEmailGenerator();
 
   // Event handlers
@@ -203,6 +207,11 @@ export default function Home() {
               noContactCustomers={removedNoContactCustomers}
               reminderSentCustomers={skippedCurrentSentCustomers}
             />
+          )}
+
+          {/* AR Report Section - Show after emails are processed */}
+          {processedEmails.length > 0 && (
+            <ARReportSection invoiceData={allInvoicesData} />
           )}
         </div>
       </div>

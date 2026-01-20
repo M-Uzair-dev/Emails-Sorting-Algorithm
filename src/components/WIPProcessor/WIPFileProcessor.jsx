@@ -66,7 +66,7 @@ const WIPFileProcessor = ({ noContactCustomers = [], reminderSentCustomers = [] 
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-6">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mt-8 mb-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
           <svg

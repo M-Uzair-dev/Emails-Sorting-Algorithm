@@ -1,0 +1,303 @@
+AR Report – Full Specification
+
+
+---
+
+1️⃣ JSON Data Structure
+
+We need a single JSON file (ar-history.json) that stores up to 20 runs in a sliding window. Each run is self-contained.
+
+{
+  "meta": {
+    "max_entries": 20,
+    "schema_version": "1.0",
+    "description": "AR run history using sliding window"
+  },
+  "runs": [
+    {
+      "run_id": "2026-01-16",
+      "run_timestamp": "2026-01-16T18:00:00Z",
+      "summary": {
+        "total_ar": 1820000,
+        "total_overdue": 640000,
+        "overdue_pct": 35.2,
+        "overdue_count": 412,
+        "customers_processed": 214
+      },
+      "aging": {
+        "current": { "amount": 1180000, "count": 712 },
+        "1_30": { "amount": 210000, "count": 243 },
+        "31_60": { "amount": 165000, "count": 187 },
+        "61_90": { "amount": 120000, "count": 104 },
+        "90_plus": { "amount": 145000, "count": 82 }
+      },
+      "top_customers": [
+        {
+          "customer_id": "CUST-0192",
+          "name": "ABC Corp",
+          "total_balance": 85000,
+          "overdue_balance": 62000,
+          "oldest_invoice_days": 112
+        },
+        {
+          "customer_id": "CUST-0034",
+          "name": "XYZ Ltd",
+          "total_balance": 72000,
+          "overdue_balance": 55000,
+          "oldest_invoice_days": 97
+        }
+      ]
+    }
+  ]
+}
+
+Notes:
+
+runs array is append-only; oldest runs removed if length > 20 (sliding window).
+
+Each run stores summary, aging buckets, top 5–10 customers, and timestamp.
+
+overdue_count allows charts showing invoice counts.
+
+This structure supports all the cards, charts, and trends.
+
+
+
+---
+
+2️⃣ Report Layout – Chef’s Kiss
+
+Top Section: KPI Cards
+
+Card	Value	Delta vs Last Run	Icon/Color
+
+Total AR	$1,820,000	+$50,000	Blue / info
+Total Overdue	$640,000	+4.3%	Red / warning
+1–30 Days	$210,000	+1.5%	Orange
+31–60 Days	$165,000	+2.1%	Orange
+61–90 Days	$120,000	+3.0%	Red
+90+ Days	$145,000	+5.2%	Dark Red
+
+
+Implementation tips:
+
+Show both absolute change and % change
+
+Use arrows or color coding for quick reading
+
+Tooltip: show last week’s value for context
+
+
+
+---
+
+Middle Section: AR Distribution
+
+1️⃣ Stacked Bar (Single Week)
+
+X-axis: Single run (current week)
+
+Y-axis: Amount ($)
+
+Stack segments: current, 1–30, 31–60, 61–90, 90+
+
+Label each segment with amount & % of total AR
+
+
+2️⃣ Optional Pie Chart
+
+Segments = same buckets
+
+Only for high-level visualization; use numbers/percentages inside slices
+
+
+
+---
+
+Middle Section 2: Trend Charts
+
+A. Aging Bucket Drift – Stacked Area Chart
+
+X-axis: Run date
+
+Y-axis: Amount ($)
+
+Layers: each aging bucket
+
+Shows invoices “drifting” into older buckets week by week
+
+Tooltip: bucket amount per week
+
+
+B. Total Overdue Trend – Line Chart
+
+X-axis: Run date
+
+Y-axis: Total overdue AR
+
+Line color: red
+
+Delta labels optional
+
+
+
+---
+
+Bottom Section: Customer Risk
+
+Bar Chart – Top 5 Customers
+
+X-axis: Customer name
+
+Y-axis: Overdue amount ($)
+
+Color: red gradient
+
+Tooltip: total balance, overdue balance, oldest invoice
+
+
+Optional Table Below
+
+Customer	Total Balance	Overdue Balance	Oldest Invoice (days)
+
+ABC Corp	$85,000	$62,000	112
+XYZ Ltd	$72,000	$55,000	97
+
+
+
+---
+
+Bottom Section 2: Auto Insights (Text)
+
+Example sentences:
+
+
+- Total overdue AR increased by 4.3% since last run, primarily driven by 31–60 and 90+ buckets.
+- Top 5 customers account for 38% of total overdue AR.
+- Aging drift shows money moving from 1–30 → 31–60, indicating invoices are getting older.
+
+> This adds narrative insight, so your team doesn’t have to interpret charts.
+
+
+
+
+---
+
+3️⃣ Implementation Logic (Claude / Code)
+
+Step 1: Load JSON
+
+const history = JSON.parse(fs.readFileSync('ar-history.json'));
+
+
+---
+
+Step 2: Append Current Run
+
+history.runs.push(currentRun);
+if (history.runs.length > history.meta.max_entries) {
+  history.runs.shift(); // remove oldest
+}
+fs.writeFileSync('ar-history.json', JSON.stringify(history, null, 2));
+
+
+---
+
+Step 3: Compute Delta for KPI Cards
+
+const lastRun = history.runs[history.runs.length - 2];
+const deltaTotalOverdue = currentRun.summary.total_overdue - lastRun.summary.total_overdue;
+const deltaPct = ((deltaTotalOverdue / lastRun.summary.total_overdue) * 100).toFixed(1);
+
+Repeat for each bucket and total AR
+
+
+
+---
+
+Step 4: Prepare Data for Charts
+
+Stacked bar (current week):
+
+
+const buckets = ['current', '1_30', '31_60', '61_90', '90_plus'];
+const stackedBarData = buckets.map(b => ({
+  bucket: b,
+  amount: currentRun.aging[b].amount
+}));
+
+Aging bucket drift:
+
+
+const driftData = history.runs.map(run => ({
+  date: run.run_timestamp,
+  current: run.aging.current.amount,
+  '1_30': run.aging['1_30'].amount,
+  '31_60': run.aging['31_60'].amount,
+  '61_90': run.aging['61_90'].amount,
+  '90_plus': run.aging['90_plus'].amount
+}));
+
+Top customers bar chart:
+
+
+const topCustomers = currentRun.top_customers.slice(0, 5).map(c => ({
+  name: c.name,
+  overdue: c.overdue_balance
+}));
+
+
+---
+
+Step 5: Generate Report Output
+
+JSON → for storage & trend calculations
+
+Excel → formatted sheets: KPI, charts, top customers
+
+Optional: PDF/Word → executive summary with charts & text insights
+
+
+
+---
+
+4️⃣ Visual Design Notes (Chef’s Kiss)
+
+Use color coding for risk:
+
+1–30 → orange
+
+31–60 → orange
+
+61–90 → red
+
+90+ → dark red
+
+Current → green/blue
+
+
+Cards on top → immediate digest
+
+Charts in middle → trends & distribution
+
+Customer info at bottom → action items
+
+Tooltips + hover states → detailed numbers
+
+Text insights → auto-generated narrative
+
+
+
+---
+
+✅ 5️⃣ Summary of All Components
+
+Section	Components	Data Source
+
+Top	KPI cards (6)	summary & delta from last run
+Middle	Stacked bar / Pie chart	aging of current run
+Middle 2	Aging bucket drift chart (stacked area)	aging over all runs
+Middle 2	Total overdue trend (line)	summary.total_overdue over all runs
+Bottom	Top 5 customers (bar)	top_customers
+Bottom	Customer table	top_customers
+Bottom	Insights text	Compare current vs last run

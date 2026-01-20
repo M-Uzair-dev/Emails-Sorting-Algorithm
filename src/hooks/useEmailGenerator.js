@@ -39,6 +39,7 @@ export const useEmailGenerator = () => {
   const [sentInvoicesData, setSentInvoicesData] = useState([]);
   const [customerEmailData, setCustomerEmailData] = useState({});
   const [invoiceLinksData, setInvoiceLinksData] = useState({});
+  const [allInvoicesData, setAllInvoicesData] = useState([]); // For AR Report
 
   // Email collection states
   const [isCollectingEmails, setIsCollectingEmails] = useState(false);
@@ -134,6 +135,9 @@ export const useEmailGenerator = () => {
     try {
       const invoiceData = await readExcelFile(invoiceFile);
       const noContactData = await readExcelFile(noContactFile);
+
+      // Store all invoice data for AR Report (before filtering)
+      setAllInvoicesData(invoiceData);
 
       // Load sent invoices data if provided
       let sentInvoicesDataRaw = [];
@@ -532,5 +536,8 @@ export const useEmailGenerator = () => {
     // UI states
     emailSignature,
     setEmailSignature,
+
+    // AR Report data
+    allInvoicesData,
   };
 };
