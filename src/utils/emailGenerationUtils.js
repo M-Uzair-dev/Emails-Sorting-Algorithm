@@ -11,35 +11,40 @@ import {
 const EMAIL_TONES = {
   CRITICALLY_OVERDUE: {
     greeting: (customer) => `Dear ${customer},`,
-    introduction: `This is an urgent and final reminder regarding your account. Several invoices are critically past due and require your immediate attention.`,
-    closingRequest: `IMMEDIATE ACTION REQUIRED: Please settle the overdue balance or reply to this email so we can arrange payment. If no response is given, we may have to proceed with further collection measures without additional notice.`,
-    signature: `Urgently,\nAccounts Receivable Department`
+    introduction: `This notice concerns invoices on your account that remain critically overdue despite prior reminders.`,
+    closingRequest: `Immediate action is required. Please remit payment in full or reply today to confirm how this balance will be resolved. If we do not hear from you, the account will move forward to the next stage of our collections process without further notice.`,
+    signature: `Accounts Receivable Department`,
   },
+
   EXTREMELY_OVERDUE: {
     greeting: (customer) => `Dear ${customer},`,
-    introduction: `We are reaching out regarding invoices on your account that are now extremely overdue and must be addressed without delay.`,
-    closingRequest: `These invoices require immediate resolution. Please make payment promptly or reply to this email so we can discuss your account and prevent further action. If no response is given, we may have to proceed with further collection measures.`,
-    signature: `Sincerely,\nAccounts Receivable Department`
+    introduction: `We are following up regarding invoices on your account that are now extremely overdue.`,
+    closingRequest: `Please submit payment promptly or reply to discuss resolution options. Continued non-response will result in further action being taken on the account.`,
+    signature: `Accounts Receivable Department`
   },
+
   LONG_OVERDUE: {
     greeting: (customer) => `Dear ${customer},`,
-    introduction: `We are contacting you about invoices on your account that have remained unpaid for an extended period. Your prompt attention to this matter is necessary.`,
-    closingRequest: `Please arrange payment for the overdue balance as soon as possible. If you are experiencing difficulties or need options, simply reply to this email so we can work out a solution together.`,
-    signature: `Respectfully,\nAccounts Receivable Department`
+    introduction: `Our records show that several invoices on your account have remained unpaid for an extended period.`,
+    closingRequest: `We ask that you arrange payment as soon as possible. If there are any issues or you need assistance, please reply so we can work toward a resolution.`,
+    signature: `Accounts Receivable Department`
   },
+
   OVERDUE: {
     greeting: (customer) => `Dear ${customer},`,
-    introduction: `We hope you are doing well. This is a courteous reminder that invoices on your account remain unpaid beyond their due date.`,
-    closingRequest: `We kindly ask that you send payment for the outstanding balance at your earliest convenience. If you have any questions or need assistance, just reply to this email and I'll be glad to help.`,
-    signature: `Best regards,\nAccounts Receivable Department`
+    introduction: `This is a reminder that invoices on your account are now past their due dates.`,
+    closingRequest: `Please send payment at your earliest convenience. If you have questions or believe this notice was sent in error, feel free to reply to this email.`,
+    signature: `Accounts Receivable Department`
   },
+
   CURRENT: {
     greeting: (customer) => `Hello ${customer},`,
-    introduction: `We hope this message finds you well. New invoices have been issued to your account for your review.`,
-    closingRequest: `These invoices are not yet due, and payment is kindly requested by the dates shown above. If you have any questions or need clarification, simply reply to this email and we will be happy to assist.`,
-    signature: `Warm regards,\nAccounts Receivable Department`
+    introduction: `New invoices have been issued to your account and are available for review.`,
+    closingRequest: `These invoices are not yet due. Payment is requested by the due dates listed. If you need clarification or assistance, just reply and we’ll be happy to help.`,
+    signature: `Accounts Receivable Department`
   }
 };
+
 
 /**
  * Category labels for email display
