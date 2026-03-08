@@ -117,7 +117,7 @@ const generateInvoiceListHTML = (invoices, customerEmailData, isOverdue = false)
     if (invoiceLink && invoiceLink.trim() !== "") {
       return `
   <li style="margin-bottom: 4px;">
-    <strong>Invoice #${invoiceNum}</strong> | ${dateLabel}: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: none;">View & Pay Invoice</a>
+    <strong>Invoice #${invoiceNum}</strong> | ${dateLabel}: <strong>${dueDateStr}</strong> | <a href="${invoiceLink}" target="_blank" style="color: #007bff; text-decoration: underline;">View & Pay Invoice</a>
   </li>`;
     } else {
       return `

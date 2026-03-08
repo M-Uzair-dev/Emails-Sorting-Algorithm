@@ -24,17 +24,20 @@ export function generateInsights(currentRun, previousRun) {
       const direction = delta.percent > 0 ? 'increased' : 'decreased';
       const absDelta = Math.abs(delta.percent);
 
-      // Find which buckets contributed most
+      // Find which buckets contributed most (by dollar amount)
       const bucketChanges = [];
-      ['31_60', '61_90', '90_plus'].forEach(bucket => {
+      ['1_30', '31_60', '61_90', '90_plus'].forEach(bucket => {
         const bucketDelta = calculateDelta(
           currentRun.aging[bucket].amount,
           previousRun.aging[bucket].amount
         );
-        if (Math.abs(bucketDelta.percent) > 5) {
+        const dollarChange = Math.abs(bucketDelta.absolute);
+
+        // Only include buckets with significant dollar changes (> $1000)
+        if (dollarChange > 1000) {
           bucketChanges.push({
             bucket,
-            percent: bucketDelta.percent,
+            dollarChange: dollarChange,
             name: getBucketName(bucket)
           });
         }
@@ -43,7 +46,7 @@ export function generateInsights(currentRun, previousRun) {
       let insight = `Total overdue AR ${direction} by ${absDelta.toFixed(1)}% since last run`;
       if (bucketChanges.length > 0) {
         const topBuckets = bucketChanges
-          .sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent))
+          .sort((a, b) => b.dollarChange - a.dollarChange)
           .slice(0, 2)
           .map(b => b.name)
           .join(' and ');

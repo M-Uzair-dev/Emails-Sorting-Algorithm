@@ -38,6 +38,7 @@ const EmailSignatureInput = ({ signature, onSignatureChange }) => {
               maxHeight: "200px",
               overflowY: "auto",
               backgroundColor: "white",
+              color: "black",
             }}
             placeholder="Right-click and paste your formatted signature from Outlook here..."
           />
