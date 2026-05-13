@@ -40,6 +40,18 @@ const EmailHeader = ({
     }
   };
 
+  const handleSendEmail = () => {
+    const { emailTitle, customerEmail, customerCC, content } = currentEmail;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const plainBody = (tempDiv.textContent || tempDiv.innerText || '').trim();
+    let mailtoUrl = `mailto:${customerEmail}?subject=${encodeURIComponent(emailTitle)}&body=${encodeURIComponent(plainBody)}`;
+    if (customerCC) {
+      mailtoUrl += `&cc=${encodeURIComponent(customerCC)}`;
+    }
+    window.location.href = mailtoUrl;
+  };
+
   return (
     <div
       className={`px-8 py-6 border-b ${
@@ -92,6 +104,27 @@ const EmailHeader = ({
               />
             </svg>
             Copy
+          </button>
+
+          <button
+            onClick={handleSendEmail}
+            className="flex items-center px-5 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 hover:scale-105 active:scale-95 transition-all font-medium shadow-sm border border-blue-100"
+            title="Open in email client"
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+            Send Email
           </button>
 
           <button
