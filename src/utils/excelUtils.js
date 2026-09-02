@@ -89,6 +89,37 @@ export const processCustomerEmailsData = (rawData) => {
 };
 
 /**
+ * Processes a QuickBooks customer export into { customerName: email }.
+ * The export's "Email" column may hold several comma-separated addresses;
+ * they are kept as one string and split at comparison time.
+ * @param {Array} rawData - Raw Excel data from the QuickBooks customer export
+ * @returns {Object} Processed customer email lookup
+ */
+export const processQuickBooksCustomersData = (rawData) => {
+  const processedCustomers = {};
+
+  rawData.forEach((entry) => {
+    const customerName = (
+      entry["Name"] ||
+      entry["Customer Name"] ||
+      entry["Display Name"] ||
+      entry.name ||
+      ""
+    )
+      .toString()
+      .trim();
+
+    const email = (entry["Email"] || entry.email || "").toString().trim();
+
+    if (customerName && email) {
+      processedCustomers[customerName] = email;
+    }
+  });
+
+  return processedCustomers;
+};
+
+/**
  * Processes invoice links data from Excel format
  * @param {Array} rawData - Raw Excel data
  * @returns {Object} Processed invoice links data object

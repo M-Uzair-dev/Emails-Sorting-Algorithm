@@ -5,7 +5,12 @@ import {
   readExcelFile,
   processCustomerEmailsData,
   processInvoiceLinksData,
+  processQuickBooksCustomersData,
 } from "../utils/excelUtils";
+import {
+  buildCustomerEmailDiff,
+  applyCustomerEmailChanges,
+} from "../utils/customerDiffUtils";
 import {
   filterInvoices,
   groupInvoicesByCustomer,
@@ -29,6 +34,7 @@ export const useEmailGenerator = () => {
   const [sentInvoicesFile, setSentInvoicesFile] = useState(null);
   const [customerEmailsFile, setCustomerEmailsFile] = useState(null);
   const [invoiceLinksFile, setInvoiceLinksFile] = useState(null);
+  const [quickBooksCustomersFile, setQuickBooksCustomersFile] = useState(null);
 
   // Processing states
   const [processedEmails, setProcessedEmails] = useState([]);
@@ -45,6 +51,10 @@ export const useEmailGenerator = () => {
   const [isCollectingEmails, setIsCollectingEmails] = useState(false);
   const [currentCustomerIndex, setCurrentCustomerIndex] = useState(0);
   const [customersList, setCustomersList] = useState([]);
+
+  // QuickBooks diff review states
+  const [customerDiff, setCustomerDiff] = useState(null);
+  const [isReviewingDiff, setIsReviewingDiff] = useState(false);
 
   // Phase states
   const [currentPhase, setCurrentPhase] = useState("current");
@@ -70,6 +80,7 @@ export const useEmailGenerator = () => {
         invoiceFile ||
         noContactFile ||
         isCollectingEmails ||
+        isReviewingDiff ||
         processedEmails.length > 0 ||
         isProcessing ||
         pendingCustomerEmailEntries.length > 0 ||
@@ -90,6 +101,7 @@ export const useEmailGenerator = () => {
     invoiceFile,
     noContactFile,
     isCollectingEmails,
+    isReviewingDiff,
     processedEmails.length,
     isProcessing,
     pendingCustomerEmailEntries.length,
@@ -115,6 +127,9 @@ export const useEmailGenerator = () => {
         break;
       case "invoiceLinks":
         setInvoiceLinksFile(file);
+        break;
+      case "quickBooksCustomers":
+        setQuickBooksCustomersFile(file);
         break;
       default:
         break;
@@ -244,12 +259,14 @@ export const useEmailGenerator = () => {
         return;
       }
 
-      // Load customer emails data if provided
+      // Load customer emails data if provided. Kept in a local as well as
+      // state, because the QuickBooks diff below needs it in this same tick.
+      let loadedCustomerEmails = {};
       if (customerEmailsFile) {
         const customerEmailsDataRaw = await readExcelFile(customerEmailsFile);
-        const preloadedEmails = processCustomerEmailsData(customerEmailsDataRaw);
-        setCustomerEmailData(preloadedEmails);
-        console.log("📧 Pre-loaded emails for:", Object.keys(preloadedEmails).length, "customers");
+        loadedCustomerEmails = processCustomerEmailsData(customerEmailsDataRaw);
+        setCustomerEmailData(loadedCustomerEmails);
+        console.log("📧 Pre-loaded emails for:", Object.keys(loadedCustomerEmails).length, "customers");
       }
 
       // Load invoice links data if provided
@@ -260,10 +277,36 @@ export const useEmailGenerator = () => {
         console.log("🔗 Pre-loaded links for:", Object.keys(preloadedLinks).length, "invoices");
       }
 
+      // Compare saved emails against the QuickBooks export, if one was given
+      let pendingDiff = null;
+      if (quickBooksCustomersFile) {
+        const quickBooksRaw = await readExcelFile(quickBooksCustomersFile);
+        const quickBooksEmails = processQuickBooksCustomersData(quickBooksRaw);
+        pendingDiff = buildCustomerEmailDiff(
+          loadedCustomerEmails,
+          quickBooksEmails,
+          customersWithEmails
+        );
+        console.log("🔄 QuickBooks diff:", {
+          changed: pendingDiff.changed.length,
+          added: pendingDiff.added.length,
+          unchanged: pendingDiff.unchangedCount,
+          keptNotInQuickBooks: pendingDiff.keptNotInQuickBooks.length,
+        });
+      }
+
       // Store data for email generation
       setCustomersList(customersWithEmails);
       setCurrentCustomerIndex(0);
-      setIsCollectingEmails(true);
+
+      // Only interrupt with the review step when there is something to review
+      if (pendingDiff && (pendingDiff.changed.length > 0 || pendingDiff.added.length > 0)) {
+        setCustomerDiff(pendingDiff);
+        setIsReviewingDiff(true);
+      } else {
+        setIsCollectingEmails(true);
+      }
+
       setIsProcessing(false);
 
       // Store grouped invoices for later use
@@ -274,6 +317,32 @@ export const useEmailGenerator = () => {
       alert(`Error processing files: ${error.message}`);
       setIsProcessing(false);
     }
+  };
+
+  /**
+   * Applies the QuickBooks changes the user approved, then moves on to the
+   * email collection phase. CC values are left untouched by the merge.
+   * @param {Array<Object>} approvedEntries - Approved diff entries
+   */
+  const applyCustomerDiff = (approvedEntries = []) => {
+    if (approvedEntries.length > 0) {
+      setCustomerEmailData((prev) =>
+        applyCustomerEmailChanges(prev, approvedEntries)
+      );
+    }
+
+    setIsReviewingDiff(false);
+    setCustomerDiff(null);
+    setIsCollectingEmails(true);
+  };
+
+  /**
+   * Declines every detected change and continues with saved emails as they are
+   */
+  const skipCustomerDiff = () => {
+    setIsReviewingDiff(false);
+    setCustomerDiff(null);
+    setIsCollectingEmails(true);
   };
 
   /**
@@ -507,6 +576,13 @@ export const useEmailGenerator = () => {
     setCustomerEmailData,
     invoiceLinksData,
     generateEmailsAfterCollection,
+
+    // QuickBooks diff review states
+    quickBooksCustomersFile,
+    customerDiff,
+    isReviewingDiff,
+    applyCustomerDiff,
+    skipCustomerDiff,
 
     // Email display states
     processedEmails,

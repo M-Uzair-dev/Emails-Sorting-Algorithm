@@ -10,6 +10,7 @@ import EmailSignatureInput from "../components/EmailSignature/EmailSignatureInpu
 import ExportSection from "../components/Export/ExportSection";
 import CustomerInfoSection from "../components/CustomerInfo/CustomerInfoSection";
 import EmailCollectionPhase from "../components/CustomerEmailCollection/EmailCollectionPhase";
+import CustomerEmailDiffReview from "../components/CustomerEmailCollection/CustomerEmailDiffReview";
 import EmailDisplaySection from "../components/EmailDisplay/EmailDisplaySection";
 import WIPFileProcessor from "../components/WIPProcessor/WIPFileProcessor";
 import Button from "../components/UI/Button";
@@ -38,6 +39,13 @@ export default function Home() {
     setCustomerEmailData,
     invoiceLinksData,
     generateEmailsAfterCollection,
+
+    // QuickBooks diff review states
+    quickBooksCustomersFile,
+    customerDiff,
+    isReviewingDiff,
+    applyCustomerDiff,
+    skipCustomerDiff,
 
     // Email display states
     processedEmails,
@@ -112,7 +120,8 @@ export default function Home() {
     invoice: invoiceFile,
     noContact: noContactFile,
     sentInvoices: sentInvoicesFile,
-    customerEmails: customerEmailsFile
+    customerEmails: customerEmailsFile,
+    quickBooksCustomers: quickBooksCustomersFile
   };
 
   return (
@@ -159,7 +168,7 @@ export default function Home() {
           />
 
           {/* Generate Button */}
-          {!isCollectingEmails && processedEmails.length === 0 && (
+          {!isCollectingEmails && !isReviewingDiff && processedEmails.length === 0 && (
             <div className="flex justify-center mb-6">
               <Button
                 onClick={processFiles}
@@ -171,6 +180,15 @@ export default function Home() {
                 {isProcessing ? "Processing Files..." : "Generate Emails"}
               </Button>
             </div>
+          )}
+
+          {/* QuickBooks Email Diff Review */}
+          {isReviewingDiff && customerDiff && (
+            <CustomerEmailDiffReview
+              diff={customerDiff}
+              onApply={applyCustomerDiff}
+              onSkip={skipCustomerDiff}
+            />
           )}
 
           {/* Email Collection Phase */}

@@ -1,6 +1,11 @@
 "use client";
 
-import { copyEmailToClipboard } from '../../utils/emailGenerationUtils';
+import {
+  copyEmailToClipboard,
+  copyEmailBodySync,
+  buildOutlookDeeplink,
+  OUTLOOK_TAB_NAME
+} from '../../utils/emailGenerationUtils';
 
 /**
  * Email display header with navigation and actions
@@ -41,15 +46,40 @@ const EmailHeader = ({
   };
 
   const handleSendEmail = () => {
-    const { emailTitle, customerEmail, customerCC, content } = currentEmail;
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    const plainBody = (tempDiv.textContent || tempDiv.innerText || '').trim();
-    let mailtoUrl = `mailto:${customerEmail}?subject=${encodeURIComponent(emailTitle)}&body=${encodeURIComponent(plainBody)}`;
-    if (customerCC) {
-      mailtoUrl += `&cc=${encodeURIComponent(customerCC)}`;
+    if (!currentEmail?.customerEmail) {
+      alert("No email address set for this customer.");
+      return;
     }
-    window.location.href = mailtoUrl;
+
+    // Copy first, synchronously, so the click's gesture context survives the
+    // window.open below. Outlook's compose deeplink can prefill To/CC/Subject
+    // but not the body — URL params are plain text — so the body rides the
+    // clipboard and the user pastes it with Ctrl+V.
+    const copied = copyEmailBodySync(currentEmail.content);
+
+    const outlookTab = window.open(
+      buildOutlookDeeplink(currentEmail),
+      OUTLOOK_TAB_NAME
+    );
+
+    if (!outlookTab) {
+      alert(
+        "Outlook couldn't open — allow popups for this site, then click Send again.\n\nThe email body is already on your clipboard."
+      );
+      return;
+    }
+
+    try {
+      outlookTab.focus();
+    } catch {
+      // Focus can be refused by the browser; the tab still opened.
+    }
+
+    if (!copied) {
+      alert(
+        "Outlook opened, but copying the body failed.\n\nUse the Copy button, then paste into the message."
+      );
+    }
   };
 
   return (
@@ -109,7 +139,7 @@ const EmailHeader = ({
           <button
             onClick={handleSendEmail}
             className="flex items-center px-5 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 hover:scale-105 active:scale-95 transition-all font-medium shadow-sm border border-blue-100"
-            title="Open in email client"
+            title="Copy body and open Outlook with To, CC and Subject filled"
           >
             <svg
               className="w-4 h-4 mr-2"

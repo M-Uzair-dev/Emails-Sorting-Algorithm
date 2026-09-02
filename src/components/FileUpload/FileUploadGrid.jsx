@@ -34,11 +34,17 @@ const FileUploadGrid = ({ files, onFileChange }) => {
       title: 'Customer Emails',
       description: 'Saved customer emails (optional)',
       required: false
+    },
+    {
+      key: 'quickBooksCustomers',
+      title: 'QuickBooks Customers',
+      description: 'Customer export to check emails against (optional)',
+      required: false
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-6">
       {fileConfigs.map(config => (
         <FileUploadCard
           key={config.key}

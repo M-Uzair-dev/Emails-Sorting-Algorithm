@@ -47,35 +47,61 @@ const EMAIL_TONES = {
 
 
 /**
+ * Banner colour pairs: a solid colour bar plus a darker text colour.
+ * Deliberately no white text — Outlook's paste sanitiser rewrites white
+ * foregrounds for contrast, so a badge with white-on-red loses its text
+ * colour and renders black. These survive intact in every client.
+ */
+const BANNER_RED = { bar: "#dc3545", text: "#a11212" };
+const BANNER_BLUE = { bar: "#0066cc", text: "#0b4f9e" };
+
+/**
  * Category labels for email display
  */
 const CATEGORY_LABELS = [
   {
     key: "days91Plus",
     label: "CRITICALLY OVERDUE INVOICES",
-    bgColor: "#dc3545",
+    colors: BANNER_RED,
   },
   {
     key: "days61to90",
     label: "EXTREMELY OVERDUE INVOICES",
-    bgColor: "#dc3545",
+    colors: BANNER_RED,
   },
   {
     key: "days31to60",
     label: "LONG OVERDUE INVOICES",
-    bgColor: "#dc3545"
+    colors: BANNER_RED
   },
   {
     key: "days1to30",
     label: "OVERDUE INVOICES",
-    bgColor: "#dc3545"
+    colors: BANNER_RED
   },
   {
     key: "current",
     label: "CURRENT INVOICES",
-    bgColor: null
+    colors: BANNER_BLUE
   },
 ];
+
+/**
+ * Builds a category banner: a coloured bar rendered as a real bgcolor table
+ * cell (not a CSS border, which sanitisers strip) beside bold coloured text.
+ * @param {string} label - Banner text
+ * @param {Object} colors - { bar, text } colour pair
+ * @returns {string} HTML string for the banner
+ */
+const generateCategoryBanner = (label, colors) => `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; margin: 16px 0 8px 0;">
+  <tr>
+    <td bgcolor="${colors.bar}" width="5" style="background-color: ${colors.bar}; width: 5px; font-size: 0; line-height: 0;">&nbsp;</td>
+    <td style="padding: 4px 0 4px 10px;">
+      <b><font color="${colors.text}" face="Calibri, Arial, sans-serif">${label}</font></b>
+    </td>
+  </tr>
+</table>`;
 
 /**
  * Determines the appropriate email tone based on invoice categories
@@ -161,8 +187,7 @@ ${tone.greeting(customer)}
 ${tone.introduction}
 <br><br>
 Below are your newly sent invoices:
-<br><br>
-<p style="margin: 16px 0 8px 0; font-weight: bold; color: #0066cc;">CURRENT INVOICES:</p>
+<br><br>${generateCategoryBanner("CURRENT INVOICES", BANNER_BLUE)}
 <ul style="margin: 8px 0; padding-left: 24px;">`;
 
   emailContent += generateInvoiceListHTML(currentInvoices, customerEmailData, false);
@@ -217,13 +242,11 @@ Below are your outstanding overdue invoices:
 <br><br>`;
 
   // Add each category if it has invoices (most overdue first)
-  CATEGORY_LABELS.forEach(({ key, label, bgColor }) => {
+  CATEGORY_LABELS.forEach(({ key, label, colors }) => {
     const categoryInvoices = categorizedInvoices[key];
     if (categoryInvoices.length > 0 && key !== 'current') {
+      emailContent += generateCategoryBanner(label, colors);
       emailContent += `
-<p style="margin: 16px 0 8px 0;">
-  <span style="background-color: ${bgColor}; color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 12pt;">${label}</span>
-</p>
 <ul style="margin: 8px 0; padding-left: 24px;">`;
 
       emailContent += generateInvoiceListHTML(categoryInvoices, customerEmailData, true);
@@ -324,6 +347,65 @@ export const getHighestOverdueCategory = (overdueInvoices) => {
     return "Overdue invoices";
   }
   return "Overdue invoices";
+};
+
+/** Outlook web compose deeplink. Swap for outlook.office365.com on older tenants. */
+export const OUTLOOK_COMPOSE_BASE = "https://outlook.office.com/mail/deeplink/compose";
+
+/** Named window target, so every send reuses one tab instead of stacking them. */
+export const OUTLOOK_TAB_NAME = "vein360-outlook";
+
+/**
+ * Builds an Outlook web compose deeplink with recipients and subject prefilled.
+ * Note: built by hand rather than with URLSearchParams, which form-encodes
+ * spaces as "+" — Outlook reads the query as a plain URI and would render the
+ * subject as "New+Invoice(s)+Sent". encodeURIComponent emits %20 instead.
+ * @param {Object} email - Email object
+ * @param {string} base - Compose base URL
+ * @returns {string} Deeplink URL
+ */
+export const buildOutlookDeeplink = (email, base = OUTLOOK_COMPOSE_BASE) => {
+  const query = [
+    `to=${encodeURIComponent(email.customerEmail || "")}`,
+    email.customerCC ? `cc=${encodeURIComponent(email.customerCC)}` : null,
+    `subject=${encodeURIComponent(email.emailTitle || "Email - Vein360")}`,
+  ]
+    .filter(Boolean)
+    .join("&");
+
+  return `${base}?${query}`;
+};
+
+/**
+ * Copies email body to the clipboard as rich HTML, synchronously.
+ * Deliberately not async: awaiting the clipboard API before window.open()
+ * drops the user-gesture context and popup blockers eat the Outlook tab.
+ * @param {string} html - Email body HTML
+ * @returns {boolean} Success status
+ */
+export const copyEmailBodySync = (html) => {
+  const holder = document.createElement("div");
+  holder.contentEditable = "true";
+  holder.innerHTML = html;
+  holder.style.cssText = "position:fixed;left:-99999px;top:0;opacity:0;";
+  document.body.appendChild(holder);
+
+  const range = document.createRange();
+  range.selectNodeContents(holder);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  let success = false;
+  try {
+    success = document.execCommand("copy");
+  } catch {
+    success = false;
+  }
+
+  selection.removeAllRanges();
+  document.body.removeChild(holder);
+  return success;
 };
 
 /**
